@@ -222,8 +222,8 @@ static void renderFloor()
 				int index = (y * SCREEN_WIDTH) + x;
 				int byteIndex = index / 8;
 				int bitOffset = index % 8;
-	
-				bool bBlack = (color == 0) || LightAttenuation < 0.01f;
+				bool Penumbra = false; //(LightAttenuation < 0.2f && (tx % 2 && ty % 2));
+				bool bBlack = (color == 0) || (LightAttenuation < 0.01f) || Penumbra;
 
 				if (bBlack)
 				{
@@ -243,8 +243,9 @@ static void renderFloor()
 				int index = (y * SCREEN_WIDTH) + x;
 				int byteIndex = index / 8;
 				int bitOffset = index % 8;
-
-				bool bBlack = (color == 0) || LightAttenuation < 0.01f;
+				int LightModulo = (1.0f - LightAttenuation) < 0.1f ? 1 : (int)((1.0f - LightAttenuation)*5.0f);
+				bool Penumbra = false; //(LightAttenuation < 0.9f && (tx % LightModulo && ty % LightModulo));
+				bool bBlack = (color == 0) || LightAttenuation < 0.01f || Penumbra;
 
 				if (bBlack)
 				{
@@ -252,14 +253,7 @@ static void renderFloor()
 				}
 				else
 				{
-					if (LightAttenuation < 0.99f/* && (tx&1 || ty&1)*/)
-					{
-						screen_fb[byteIndex] |= (1 << (7 - bitOffset));
-					}
-					else
-					{
-						screen_fb[byteIndex] &= ~(1 << (7 - bitOffset));
-					}				
+					screen_fb[byteIndex] |= (1 << (7 - bitOffset));
 				}			
 			}
 		}
@@ -419,7 +413,6 @@ static void renderWalls()
 			int index = (y * SCREEN_WIDTH) + x;
 			int byteIndex = index / 8;
 			int bitOffset = index % 8;
-			bool bBlack = (color == 0);
 
 			//Is the pixel affected by a light
 			vector3 PixelWorldPosition;
@@ -427,20 +420,16 @@ static void renderWalls()
 			PixelWorldPosition.y = RayCollision.y;// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
 			PixelWorldPosition.z = 0.0f;
 			float LightAttenuation = GetLightAttenuation(PixelWorldPosition, lights[0]);
+
+			bool bBlack = (color == 0) || (LightAttenuation < 0.01f);
+
 			if (bBlack)
 			{
 				screen_fb[byteIndex] &= ~(1 << (7 - bitOffset));
 			}
 			else
 			{
-				if (LightAttenuation > 0.01f)
-				{
-					screen_fb[byteIndex] |= (1 << (7 - bitOffset));
-				}
-				else
-				{
-					screen_fb[byteIndex] &= ~(1 << (7 - bitOffset));
-				}
+				screen_fb[byteIndex] |= (1 << (7 - bitOffset));
 			}
 	
 		}
@@ -530,7 +519,7 @@ static void renderSprites()
 						int index = (y * SCREEN_WIDTH) + stripe;
 						int byteIndex = index / 8;
 						int bitOffset = index % 8;
-						bool bBlack = color == 0;
+						bool bBlack = (color == 0) || (LightAttenuation < 0.01f);
 						if (bBlack)
 						{
 							screen_fb[byteIndex] &= ~(1 << (7 - bitOffset));
@@ -668,7 +657,7 @@ static int update(void* userdata)
 
 
 	pd->graphics->setFont(font);
-	pd->graphics->drawText("Hello World!", strlen("Hello World!"), kASCIIEncoding, 0, 0);
+	//pd->graphics->drawText("Hello World!", strlen("Hello World!"), kASCIIEncoding, 0, 0);
 	pd->graphics->markUpdatedRows(0, 240 - 1);
 	gpd->graphics->clear(kColorWhite);
 
