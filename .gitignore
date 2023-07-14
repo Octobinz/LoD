@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+/.vs
+/build
+/mansion_playdate.pdx
+/out/build/x64-Debug
