@@ -1,8 +1,7 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include "types.h"
+
 
 struct vector2
 {
@@ -27,12 +26,12 @@ struct vector4
 
 struct triangle
 {
-	uint8_t indices[3];
+	u8 indices[3];
 };
 
 struct model
 {
-	uint16_t indices[3];
+	u16 indices[3];
 };
 
 struct matrix_3x3
@@ -71,6 +70,10 @@ void vertex_mul(vector2& A, float w);
 void vector_add(vector2 *z, const vector2 *x, const vector2 *y);
 void vector_add(vector4 *z, const vector4 *x, const vector4 *y);
 void vector_sub(vector4 *z, const vector4 *x, const vector4 *y);
+__forceinline float vector_dotproduct(const vector2 &x, const vector2 &y)
+{
+	return x.x * y.x + x.y * y.y;
+};
 float vector_dotproduct(const vector4 *x, const vector4 *y);
 void vector_crossproduct(vector4 *z, const vector4 *x, const vector4 *y);
 void vector_interp(vector4 *z, const vector4 *x1, const vector4 *x2, float t);

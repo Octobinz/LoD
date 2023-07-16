@@ -4,25 +4,24 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "geometry.h"
+#include "types.h"
+#include "entity.h"
 
-typedef uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t   i8;
-typedef int16_t  i16;
-typedef int32_t  i32;
-typedef int64_t  i64;
-typedef size_t   usize;
+extern "C"
+{
+#include "pd_api.h"
+}
+
+
 #define SCREEN_WIDTH 416
 #define SCREEN_HEIGHT 240
 
-struct Sprite
-{
-	float x;
-	float y;
-	int texture;
-};
+struct GameObject;
+
+static const u32 MaxGameObjects = 256;
+static const u32 MaxEnemies = 256;
+
+extern PlaydateAPI* pd;
 
 struct Light
 {
@@ -40,6 +39,15 @@ struct GameTexture
 	LCDBitmap *img;
 };
 
+struct Sprite
+{
+	float x;
+	float y;
+	float scale = 1.0f;
+	int texture = -1;
+};
+
+
 struct PlayerContext
 {
 	vector2 Position; 
@@ -47,9 +55,57 @@ struct PlayerContext
 	vector2 Plane;
 	Sprite SwordSprite;
 	Sprite ShieldSprite;
+	float Radius = 1.0f;
 };
 
+extern PlayerContext Context;
+
+
+
+/*
+	Some object that can be found in the game world	
+*/
+//Locator index is the same as the GameObject index
 struct GameObject
 {
-	matrix_4x4 transform;
+	int ObjectSprite;
+	float Radius = 1.0f;
 };
+
+struct Enemy
+{
+	int Object;
+	int Locator;
+	bool Engaged = false;
+	float AttackTimer = 1.0f;// In seconds
+	float CurrentAttackTimer = 1.0f;// In seconds
+	int HP = 100;
+
+	//Attack timer, hp, endurance etc...
+};
+
+extern GameObject GameObjects[MaxGameObjects];
+extern Enemy GameEnemies[MaxEnemies];
+extern vector2 EnemiesLocations[MaxGameObjects];
+extern vector2 ObjectsLocations[MaxGameObjects];
+//extern Enemy EngagedEnemies[MaxEnemies];
+extern u8 EngagedEnemiesCount;
+extern u8 CurrentEnemiesCount;
+extern u8 CurrentGameObjectCount;
+extern u8 CurrentEnemyLocatorCount;
+extern EntityBundle<GameObject> GameObjectsBundle;
+extern EntityBundle<Enemy> EnemiesBundle;
+
+namespace GameState
+{
+	enum State
+	{
+		MainMenu,
+		Navigation,
+		Combat,
+		Death,
+		Max
+	};
+};
+
+extern GameState::State CurrentGameState;
