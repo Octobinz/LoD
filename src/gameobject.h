@@ -25,15 +25,27 @@ namespace CombatMenu
 		Spell,
 		Object
 	};
+	enum AttackOption
+	{
+		Stab,
+		Swing,
+		Thrust
+	};
+	enum SpellOption
+	{
+		Fire,
+		Heal
+	};
 }
 
 namespace SelectedMenu
 {
 	enum Menu: u32
 	{
+		Combat,
 		Attack,
 		Spell,
-		Object
+		Item
 	};
 }
 
@@ -79,7 +91,12 @@ struct PlayerContext
 
 	Sprite _64SquareSprite;
 	Sprite _256RectangleSprite;
+
 	CombatMenu::Option CurrentCombatOption = CombatMenu::Option::Attack;
+	CombatMenu::AttackOption CurrentAttackOption = CombatMenu::AttackOption::Stab;
+	CombatMenu::SpellOption CurrentSpellOption = CombatMenu::SpellOption::Fire;
+
+	SelectedMenu::Menu CurrentCombatMenu = SelectedMenu::Menu::Combat;
 	float Radius = 1.0f;
 	float Initiative = 0.1f;
 	bool WaitForButtonRelease = false;

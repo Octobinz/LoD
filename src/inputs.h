@@ -10,6 +10,7 @@ enum InputKeys
 	Up,
 	Down,
 	Action,
+	Action2,
 	Max
 };
 

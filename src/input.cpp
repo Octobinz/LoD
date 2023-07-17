@@ -99,4 +99,15 @@ void UpdateInputs()
 		SetValue(inputs_released, InputKeys::Action, inputs_down & (1<<InputKeys::Action));
 		SetValue(inputs_down, InputKeys::Action, false);
 	}
+
+	if (current & kButtonA)
+	{
+		SetValue(inputs_released, InputKeys::Action2, false);
+		SetValue(inputs_down, InputKeys::Action2, true);
+	}
+	else
+	{
+		SetValue(inputs_released, InputKeys::Action2, inputs_down & (1<<InputKeys::Action2));
+		SetValue(inputs_down, InputKeys::Action2, false);
+	}
 }

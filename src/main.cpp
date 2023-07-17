@@ -61,13 +61,140 @@ void QueuePopupMessage(const char* message, float Duration)
 	PopupMessages.push(Message);
 }
 
+void RenderSpellMainMenu()
+{
+	switch(Context.CurrentSpellOption)
+	{
+		case CombatMenu::SpellOption::Fire:
+		{
+			pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("FIRE", strlen("FIRE"), kASCIIEncoding, 80, 185);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+			pd->graphics->drawText("HEAL", strlen("HEAL"), kASCIIEncoding, 80, 215);
+		}
+		break;
+		case CombatMenu::SpellOption::Heal:
+		{
+			pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
+			pd->graphics->drawText("FIRE", strlen("FIRE"), kASCIIEncoding, 80, 185);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("HEAL", strlen("HEAL"), kASCIIEncoding, 80, 215);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+		}
+		break;/*
+		case CombatMenu::AttackOption::Thrust:
+		{
+			pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
+			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
+			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+		}
+		break;*/
+	}
+}
+
+void RenderAttackMainMenu()
+{
+	switch(Context.CurrentAttackOption)
+	{
+		case CombatMenu::AttackOption::Stab:
+		{
+			pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
+			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
+		}
+		break;
+		case CombatMenu::AttackOption::Swing:
+		{
+			pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
+			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
+		}
+		break;
+		case CombatMenu::AttackOption::Thrust:
+		{
+			pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
+			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
+			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+		}
+		break;
+	}
+}
+
+void RenderCombatMainMenu()
+{
+	switch(Context.CurrentCombatOption)
+	{
+		case CombatMenu::Option::Attack:
+		{
+			pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+			pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
+			pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
+		}
+		break;
+		case CombatMenu::Option::Spell:
+		{
+			pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
+			pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+			pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
+		}
+		break;
+		case CombatMenu::Option::Object:
+		{
+			pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
+			pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
+			pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
+			pd->graphics->setDrawMode( kDrawModeInverted );
+			pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
+			pd->graphics->setDrawMode( kDrawModeCopy );
+		}
+		break;
+	}
+}
+
+void RenderCombatUI()
+{
+	switch(Context.CurrentCombatMenu)
+	{
+		case SelectedMenu::Menu::Combat:
+			RenderCombatMainMenu();
+			break;
+		case SelectedMenu::Menu::Attack:
+			RenderAttackMainMenu();
+			break;
+		case SelectedMenu::Menu::Spell:
+			RenderSpellMainMenu();
+			break;
+	}
+}
+
 void renderUI(float DeltaTime)
 {
 	if(!PopupMessages.empty() && PopupMessages.front().PopupTimeLeft > 0.0f)
 	{
+		PopupMessage& M = PopupMessages.front();
+
 		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
 		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-		pd->graphics->drawText(PopupMessages.front().PopupMessage, strlen(PopupMessages.front().PopupMessage), kASCIIEncoding, 80, 10);
+		pd->graphics->drawText(M.PopupMessage, strlen(M.PopupMessage), kASCIIEncoding, 80, 10);
 	}
 
 	if (CurrentGameState == GameState::Combat)
@@ -77,40 +204,7 @@ void renderUI(float DeltaTime)
 	
 		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
 		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
-		
-		switch(Context.CurrentCombatOption)
-		{
-			case CombatMenu::Option::Attack:
-			{
-				pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
-				pd->graphics->setDrawMode( kDrawModeInverted );
-				pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
-				pd->graphics->setDrawMode( kDrawModeCopy );
-				pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
-				pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
-			}
-			break;
-			case CombatMenu::Option::Spell:
-			{
-				pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
-				pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
-				pd->graphics->setDrawMode( kDrawModeInverted );
-				pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
-				pd->graphics->setDrawMode( kDrawModeCopy );
-				pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
-			}
-			break;
-			case CombatMenu::Option::Object:
-			{
-				pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
-				pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
-				pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
-				pd->graphics->setDrawMode( kDrawModeInverted );
-				pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
-				pd->graphics->setDrawMode( kDrawModeCopy );
-			}
-			break;
-		}
+		RenderCombatUI();
 	}
 }
 
@@ -179,23 +273,9 @@ void InitPlayer()
 
 
 
-/*
-	//Make enemies that should attack attack
-	//Check for player attack and damage	
-*/
-void UpdateCombat(float DeltaTime)
+bool ProcessMenuInputs(float DeltaTime, u32& InOutOption, int ElementsCount)
 {
-	bool bAttacked = false;
-
-	if(Context.WaitForButtonRelease == true)
-	{
-		if(inputs_down != 0)
-			return;
-		Context.WaitForButtonRelease = false;
-		inputs_released = 0;
-	}
-
-	u32 CurrentSelection = (u32)Context.CurrentCombatOption;
+	u32 CurrentSelection = (u32)InOutOption;
 	if (IsKeyReleased(InputKeys::Right))
 	{
 		CurrentSelection += 2;
@@ -214,15 +294,72 @@ void UpdateCombat(float DeltaTime)
 	}
 
 
-	Context.CurrentCombatOption = (CombatMenu::Option)std::max<u32>(std::min<u32>(CurrentSelection, 2), 0);
+	InOutOption = std::max<u32>(std::min<u32>(CurrentSelection, ElementsCount-1), 0);
 
-	if (IsKeyReleased(InputKeys::Action) && Context.CurrentCombatOption == CombatMenu::Option::Attack) 
+	if (IsKeyReleased(InputKeys::Action)) 
 	{
-		bAttacked = true;
-		//pitch += 10;
-		//lights[0].radius -= 0.1f;
+		return true;
+	}
+	if (IsKeyReleased(InputKeys::Action2)) 
+	{
+		Context.CurrentCombatMenu = SelectedMenu::Menu::Combat;
+		//Context.CurrentCombatMenu = SelectedMenu::Menu::Attack;
+	}
+	return false;
+}
+
+/*
+	//Make enemies that should attack attack
+	//Check for player attack and damage	
+*/
+void UpdateCombat(float DeltaTime)
+{
+	bool bAttacked = false;
+
+	if(Context.WaitForButtonRelease == true)
+	{
+		if(inputs_down != 0)
+			return;
+		Context.WaitForButtonRelease = false;
+		inputs_released = 0;
 	}
 
+	switch(Context.CurrentCombatMenu)
+	{
+		case SelectedMenu::Menu::Combat:
+		{
+			u32 Option = (u32)Context.CurrentCombatOption;
+			if(ProcessMenuInputs(DeltaTime,Option,3))
+			{
+				switch(Option)
+				{
+					case 0:
+						Context.CurrentCombatMenu = SelectedMenu::Menu::Attack;
+						break;
+					case 1:
+						Context.CurrentCombatMenu = SelectedMenu::Menu::Spell;
+						break;
+					case 2:
+						Context.CurrentCombatMenu = SelectedMenu::Menu::Item;
+						break;
+				}
+			}
+			Context.CurrentCombatOption = (CombatMenu::Option)Option;
+		} break;
+		case SelectedMenu::Menu::Attack:
+		{
+			u32 Option = (u32)Context.CurrentAttackOption;
+			bAttacked = ProcessMenuInputs(DeltaTime, Option, 3);
+			Context.CurrentAttackOption = (CombatMenu::AttackOption)Option;
+		} break;
+		case SelectedMenu::Menu::Spell:
+		{
+			u32 Option = (u32)Context.CurrentSpellOption;
+			bAttacked = ProcessMenuInputs(DeltaTime, Option, 2);
+			Context.CurrentSpellOption = (CombatMenu::SpellOption)Option;
+		} break;
+	}
+	
 	for(u32 i = 0; i < EngagedEnemiesCount; i++)
 	{
 		Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[i]];
@@ -240,7 +377,7 @@ void UpdateCombat(float DeltaTime)
 				if (bAttacked)
 				{
 					CurrentEnemy.HP -= 25;
-					QueuePopupMessage("DAMAGE DONE!!!", 1.5f);
+					QueuePopupMessage("25 Damages done!", 1.5f);
 					CurrentTurn = CombatTurn::Enemies;
 					if (CurrentEnemy.HP <= 0)
 					{
@@ -258,7 +395,7 @@ void UpdateCombat(float DeltaTime)
 				char Msg[128];
 				sprintf(Msg, "%s uses it's sword!", GameEnemies[EngagedEnemies[i]].EnemyName);
 				QueuePopupMessage(Msg, 2.0f);
-				QueuePopupMessage("DAMAGE RECEIVED!!!", 1.5f);
+				QueuePopupMessage("15 Damages received!", 1.5f);
 				CurrentTurn = CombatTurn::Player;
 			}
 		}
@@ -358,8 +495,9 @@ void TickGame(float DeltaTime)
 {
 	if (!PopupMessages.empty() && PopupMessages.front().PopupTimeLeft > 0.0f)
 	{
-		PopupMessages.front().PopupTimeLeft -= DeltaTime;
-		if(PopupMessages.front().PopupTimeLeft <= 0.0f)
+		PopupMessage& M = PopupMessages.front();
+		M.PopupTimeLeft -= DeltaTime;
+		if(M.PopupTimeLeft <= 0.0f)
 		{
 			PopupMessages.pop();
 		}
