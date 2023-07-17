@@ -27,21 +27,65 @@ unsigned int LastMilliseconds = 0;
 #include <stdint.h>
 #include <stdbool.h>
 
-
-
-
-static void render() 
+void render() 
 {
 	renderFloor();
 	renderWalls();
 	renderSprites();
 }
 
+void renderUI()
+{
+	if (CurrentGameState == GameState::Combat)
+	{
+		GameTexture& UI64Square = texture[Context._64SquareSprite.texture];
+		pd->graphics->drawBitmap(UI64Square.img, 0, 175, kBitmapUnflipped);
+	
+		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
+		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
+		
+		switch(Context.CurrentCombatOption)
+		{
+			case CombatMenu::Option::Attack:
+			{
+				pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
+				pd->graphics->setDrawMode( kDrawModeInverted );
+				pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
+				pd->graphics->setDrawMode( kDrawModeCopy );
+				pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
+				pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
+			}
+			break;
+			case CombatMenu::Option::Spell:
+			{
+				pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
+				pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
+				pd->graphics->setDrawMode( kDrawModeInverted );
+				pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
+				pd->graphics->setDrawMode( kDrawModeCopy );
+				pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
+			}
+			break;
+			case CombatMenu::Option::Object:
+			{
+				pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
+				pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
+				pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
+				pd->graphics->setDrawMode( kDrawModeInverted );
+				pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
+				pd->graphics->setDrawMode( kDrawModeCopy );
+			}
+			break;
+		}
+	}
+}
+
 static LCDBitmap *loadImageAtPath(const char *path)
 {
-	const char *outErr = NULL;
+	const char *outErr = nullptr;
 	LCDBitmap *img = pd->graphics->loadBitmap(path, &outErr);
-	if ( outErr != NULL ) {
+	if ( outErr != nullptr ) 
+	{
 		pd->system->logToConsole("Error loading image at path '%s': %s", path, outErr);
 	}
 	return img;
@@ -75,7 +119,9 @@ void InitPlayer()
 	Context.Radius = 1.1f;
 	CurrentGameState = GameState::Navigation;
 	Context.SwordSprite.texture = LoadTexture("textures/player_sword_1.png");
-	Context.ShieldSprite.texture = LoadTexture( "textures/player_shield_1.png");
+	Context.ShieldSprite.texture = LoadTexture("textures/player_shield_1.png");
+	Context._64SquareSprite.texture = LoadTexture("textures/ui/64Square.png");
+	Context._256RectangleSprite.texture = LoadTexture("textures/ui/256Rectangle.png");
 }
 
 
@@ -87,14 +133,43 @@ void InitPlayer()
 void UpdateCombat(float DeltaTime)
 {
 	bool bAttacked = false;
-	if (inputs_released[InputKeys::Action]) 
+
+	if(Context.WaitForButtonRelease == true)
+	{
+		if(inputs_down != 0)
+			return;
+		Context.WaitForButtonRelease = false;
+		inputs_released = 0;
+	}
+
+	u32 CurrentSelection = (u32)Context.CurrentCombatOption;
+	if (IsKeyReleased(InputKeys::Right))
+	{
+		CurrentSelection += 2;
+	}
+	if (IsKeyReleased(InputKeys::Left))
+	{
+		CurrentSelection -= 2;
+	}
+	if (IsKeyReleased(InputKeys::Up))
+	{
+		CurrentSelection--;
+	}
+	if (IsKeyReleased(InputKeys::Down))
+	{
+		CurrentSelection++;
+	}
+
+
+	Context.CurrentCombatOption = (CombatMenu::Option)std::max<u32>(std::min<u32>(CurrentSelection, 2), 0);
+
+	if (IsKeyReleased(InputKeys::Action) && Context.CurrentCombatOption == CombatMenu::Option::Attack) 
 	{
 		bAttacked = true;
 		//pitch += 10;
 		//lights[0].radius -= 0.1f;
 	}
-
-	for(int i = 0; i < MaxEnemies; i++)
+	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
 	{
 		Enemy& CurrentEnemy = GameEnemies[i];
 		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, i))
@@ -121,7 +196,7 @@ void UpdateCombat(float DeltaTime)
 
 void UpdateNavigation(float DeltaTime)
 {
-	if (inputs_released[InputKeys::Action]) 
+	if (IsKeyReleased(InputKeys::Action)) 
 	{
 		//pitch += 10;
 		//lights[0].radius -= 0.1f;
@@ -129,18 +204,18 @@ void UpdateNavigation(float DeltaTime)
 	const float rotspeed = 3.0f * 0.016f,
 	movespeed = 3.0f * 0.016f;
 
-	if (inputs_down[InputKeys::Left]) 
+	if (IsKeyDown(InputKeys::Left)) 
 	{
 		rotate(+rotspeed);
 	}
 
-	if (inputs_down[InputKeys::Right]) 
+	if (IsKeyDown(InputKeys::Right)) 
 	{
 		rotate(-rotspeed);
 	}
 
 
-	if (inputs_down[InputKeys::Up]) 
+	if (IsKeyDown(InputKeys::Up)) 
 	{
 
 		float futurex = Context.Position.x + Context.Direction.x * movespeed;
@@ -156,7 +231,7 @@ void UpdateNavigation(float DeltaTime)
 		}
 	}
 
-	if (inputs_down[InputKeys::Down]) 
+	if (IsKeyDown(InputKeys::Down)) 
 	{
 
 		float futurex = Context.Position.x - Context.Direction.x * movespeed;
@@ -172,7 +247,7 @@ void UpdateNavigation(float DeltaTime)
 		}
 	}
 
-	for(int i = 0; i < MaxEnemies; i++)
+	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
 	{
 		vector2& CurrentLocation = EnemiesLocations[i];
 		vector2 DistanceVector;
@@ -186,6 +261,7 @@ void UpdateNavigation(float DeltaTime)
 			//EngagedEnemies[EngagedEnemiesCount] = GameEnemies[i];
 			++EngagedEnemiesCount;
 			CurrentGameState = GameState::Combat;
+			Context.WaitForButtonRelease = true;
 		}
 	}
 }
@@ -293,9 +369,13 @@ static int update(void* userdata)
 
 	TickGame(CurrentDeltaMilliseconds);
 	render();
+
 	GameTexture& SwordTexture = texture[Context.SwordSprite.texture];
 	pd->graphics->drawBitmap(SwordTexture.img, 250, 0, kBitmapUnflipped);
 	pd->system->drawFPS(0, 0);
+
+	renderUI();
+
 	return 1;
 }
 

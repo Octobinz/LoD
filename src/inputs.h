@@ -13,8 +13,10 @@ enum InputKeys
 	Max
 };
 
-extern bool inputs_released[InputKeys::Max];
-extern bool inputs_down[InputKeys::Max];
+extern u32 inputs_released;
+extern u32 inputs_down;
 
 void UpdateInputs();
 void InitInputs();
+bool IsKeyDown(InputKeys InInputKey);
+bool IsKeyReleased(InputKeys InInputKey);

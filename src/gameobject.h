@@ -16,6 +16,26 @@ extern "C"
 #define SCREEN_WIDTH 416
 #define SCREEN_HEIGHT 240
 
+namespace CombatMenu
+{
+	enum Option : u32
+	{
+		Attack,
+		Spell,
+		Object
+	};
+}
+
+namespace SelectedMenu
+{
+	enum Menu: u32
+	{
+		Attack,
+		Spell,
+		Object
+	};
+}
+
 struct GameObject;
 
 static const u32 MaxGameObjects = 256;
@@ -55,7 +75,13 @@ struct PlayerContext
 	vector2 Plane;
 	Sprite SwordSprite;
 	Sprite ShieldSprite;
+
+	Sprite _64SquareSprite;
+	Sprite _256RectangleSprite;
+	CombatMenu::Option CurrentCombatOption = CombatMenu::Option::Attack;
 	float Radius = 1.0f;
+	bool WaitForButtonRelease = false;
+
 };
 
 extern PlayerContext Context;

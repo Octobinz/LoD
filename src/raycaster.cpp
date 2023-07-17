@@ -87,15 +87,15 @@ float SpriteDistance[MaxSprites];
 
 void SortSprites(int (&SpriteOrder)[MaxSprites])
 {
-	for (int i = 0; i < SpritesBundle.EntityCount; i++)
+	for (int i = 0; i < SpritesBundle.MaxIndex; i++)
 	{
 		SpriteOrder[i] = i;
 		SpriteDistance[i] = ((Context.Position.x - Sprites[i].x) * (Context.Position.x - Sprites[i].x) + (Context.Position.y - Sprites[i].y) * (Context.Position.y - Sprites[i].y));
 	}
 
-	for(int i = 0; i < SpritesBundle.EntityCount; i++) 
+	for(int i = 0; i < SpritesBundle.MaxIndex; i++) 
 	{
-		for(int j = 0; j < SpritesBundle.EntityCount; j++) 
+		for(int j = 0; j < SpritesBundle.MaxIndex; j++) 
 		{
 			float Distance1 = SpriteDistance[SpriteOrder[i]];
 			float Distance2 = SpriteDistance[SpriteOrder[j]];
@@ -460,10 +460,10 @@ void renderSprites()
 	SortSprites(SpriteOrder);
 #endif
 	//after sorting the sprites, do the projection and draw them
-	for (int i = 0; i < SpritesBundle.EntityCount; i++)
+	for (int i = 0; i < SpritesBundle.MaxIndex; i++)
 	{
 		Sprite& CurrentSprite = Sprites[SpriteOrder[i]];
-		if(CurrentSprite.texture != -1)
+		if(IsIndexValid(SpritesBundle, SpriteOrder[i]))
 		{
 			//translate sprite position to relative to camera
 			float spriteX = CurrentSprite.x - Context.Position.x;

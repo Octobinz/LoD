@@ -11,7 +11,7 @@ const u32 MaskCount = MaxEntities >> 6;
 template<class T>
 struct EntityBundle
 {
-	u32 EntityCount = 0;
+	u32 MaxIndex = 0;
 	T Entities[MaxEntities];
 	u64 FreeListMask[MaskCount];
 };
@@ -39,7 +39,7 @@ u32 GetNextIndex(EntityBundle<T>& InBundle)
 		{
 			index = getIndexOfFirstZeroBit(Mask);
 			Mask |= u64(1) << index;
-			++InBundle.EntityCount;
+			++InBundle.MaxIndex;
 			return index * (i + 1);
 		}
 	}

@@ -5,15 +5,34 @@ extern "C"
 	#include "pd_api.h"
 }
 
-bool inputs_released[InputKeys::Max];
-bool inputs_down[InputKeys::Max];
+u32 inputs_released;
+u32 inputs_down;
 
 void InitInputs()
 {
-	for(int i = 0; i < InputKeys::Max; i++)
+	inputs_down = 0;
+	inputs_released = 0;
+}
+
+bool IsKeyDown(InputKeys InInputKey)
+{
+	return inputs_down & (1 << InInputKey);
+}
+
+bool IsKeyReleased(InputKeys InInputKey)
+{
+	return inputs_released & (1 << InInputKey);
+}
+
+__forceinline void SetValue(u32& buffer, InputKeys index, bool value)
+{
+	if(value)
 	{
-		inputs_down[i] = false;
-		inputs_released[i] = false;
+		buffer |= (1 << index);
+	}
+	else
+	{
+		buffer &= ~(1 << index);
 	}
 }
 
@@ -24,60 +43,60 @@ void UpdateInputs()
 	
 	if (current & kButtonLeft)
 	{
-		inputs_released[InputKeys::Left] = false;
-		inputs_down[InputKeys::Left] = true;
+		SetValue(inputs_released, InputKeys::Left, false);
+		SetValue(inputs_down, InputKeys::Left, true);
 	}
 	else
 	{
-		inputs_released[InputKeys::Left] = inputs_down[InputKeys::Left];
-		inputs_down[InputKeys::Left] = false;
+		SetValue(inputs_released, InputKeys::Left, inputs_down & (1<<InputKeys::Left));
+		SetValue(inputs_down, InputKeys::Left, false);
 	}
 
 	//Right
 	if (current & kButtonRight)
 	{
-		inputs_released[InputKeys::Right] = false;
-		inputs_down[InputKeys::Right] = true;
+		SetValue(inputs_released, InputKeys::Right, false);
+		SetValue(inputs_down, InputKeys::Right, true);
 	}
 	else
 	{
-		inputs_released[InputKeys::Right] = inputs_down[InputKeys::Right];
-		inputs_down[InputKeys::Right] = false;
+		SetValue(inputs_released, InputKeys::Right, inputs_down & (1<<InputKeys::Right));
+		SetValue(inputs_down, InputKeys::Right, false);
 	}
 
 	//Up
 	if (current & kButtonUp)
 	{
-		inputs_released[InputKeys::Up] = false;
-		inputs_down[InputKeys::Up] = true;
+		SetValue(inputs_released, InputKeys::Up, false);
+		SetValue(inputs_down, InputKeys::Up, true);
 	}
 	else
 	{
-		inputs_released[InputKeys::Up] = inputs_down[InputKeys::Up];
-		inputs_down[InputKeys::Up] = false;
+		SetValue(inputs_released, InputKeys::Up, inputs_down & (1<<InputKeys::Up));
+		SetValue(inputs_down, InputKeys::Up, false);
 	}
 
 	//Down
 	if (current & kButtonDown)
 	{
-		inputs_released[InputKeys::Down] = false;
-		inputs_down[InputKeys::Down] = true;
+		SetValue(inputs_released, InputKeys::Down, false);
+		SetValue(inputs_down, InputKeys::Down, true);
 	}
 	else
 	{
-		inputs_released[InputKeys::Down] = inputs_down[InputKeys::Down];
-		inputs_down[InputKeys::Down] = false;
+		SetValue(inputs_released, InputKeys::Down, inputs_down & (1<<InputKeys::Down));
+		SetValue(inputs_down, InputKeys::Down, false);
 	}
 
 
 	if (current & kButtonB)
 	{
-		inputs_released[InputKeys::Action] = false;
-		inputs_down[InputKeys::Action] = true;
+		SetValue(inputs_released, InputKeys::Action, false);
+		SetValue(inputs_down, InputKeys::Action, true);
 	}
 	else
 	{
-		inputs_released[InputKeys::Action] = inputs_down[InputKeys::Action];
-		inputs_down[InputKeys::Action] = false;
+		SetValue(inputs_released, InputKeys::Action, inputs_down & (1<<InputKeys::Action));
+		SetValue(inputs_down, InputKeys::Action, false);
 	}
 }
