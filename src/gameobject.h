@@ -15,6 +15,7 @@ extern "C"
 
 #define SCREEN_WIDTH 416
 #define SCREEN_HEIGHT 240
+#define HALF_SCREEN_HEIGHT 120
 
 namespace CombatMenu
 {
@@ -80,6 +81,7 @@ struct PlayerContext
 	Sprite _256RectangleSprite;
 	CombatMenu::Option CurrentCombatOption = CombatMenu::Option::Attack;
 	float Radius = 1.0f;
+	float Initiative = 0.1f;
 	bool WaitForButtonRelease = false;
 
 };
@@ -100,11 +102,13 @@ struct GameObject
 
 struct Enemy
 {
+	char EnemyName[128];
 	int Object;
 	int Locator;
 	bool Engaged = false;
 	float AttackTimer = 1.0f;// In seconds
 	float CurrentAttackTimer = 1.0f;// In seconds
+	float Initiative = 1.0f;
 	int HP = 100;
 
 	//Attack timer, hp, endurance etc...

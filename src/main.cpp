@@ -27,6 +27,9 @@ unsigned int LastMilliseconds = 0;
 #include <stdint.h>
 #include <stdbool.h>
 
+static char CurrentPopupMessage[512];
+static float PopupTimeLeft = -1.0f;
+
 void render() 
 {
 	renderFloor();
@@ -34,8 +37,21 @@ void render()
 	renderSprites();
 }
 
-void renderUI()
+void PopupMessage(const char* message, float Duration)
 {
+	strcpy_s(CurrentPopupMessage, 512, message);
+	PopupTimeLeft = Duration;
+}
+
+void renderUI(float DeltaTime)
+{
+	if(PopupTimeLeft > 0.0f)
+	{
+		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
+		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
+		pd->graphics->drawText(CurrentPopupMessage, strlen(CurrentPopupMessage), kASCIIEncoding, 80, 10);
+	}
+
 	if (CurrentGameState == GameState::Combat)
 	{
 		GameTexture& UI64Square = texture[Context._64SquareSprite.texture];
@@ -80,6 +96,23 @@ void renderUI()
 	}
 }
 
+//returns -1 for player, index for enemy
+int GetInitiative()
+{
+	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
+	{
+		Enemy& CurrentEnemy = GameEnemies[i];
+		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, i))
+		{
+			if(CurrentEnemy.Initiative > Context.Initiative)
+			{
+				return i;
+			}
+		} 
+	}
+	return -1;
+}
+
 static LCDBitmap *loadImageAtPath(const char *path)
 {
 	const char *outErr = nullptr;
@@ -100,13 +133,14 @@ void RemoveEnemy(u32 index)
 	ReleaseIndex(EnemiesBundle, index);
 }
 
-void AddEnemy(float x, float y)
+void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 {
 	u32 LocatorIndex = GetNextIndex(EnemiesLocatorsBundle);
 	u32 GameObjectIndex = GetNextIndex(GameObjectsBundle);
 	u32 EnemyIndex = GetNextIndex(EnemiesBundle);
 
 	Enemy& CurrentEnemy = GameEnemies[EnemyIndex];
+	strcpy_s(CurrentEnemy.EnemyName, 128, EnemyName);
 	CurrentEnemy.Object = GameObjectIndex;
 	CurrentEnemy.Locator = LocatorIndex;
 	GameObjects[GameObjectIndex].ObjectSprite = AddSprite("textures/skeleton.png", x, y);
@@ -184,6 +218,7 @@ void UpdateCombat(float DeltaTime)
 			if (bAttacked)
 			{
 				CurrentEnemy.HP -= 25;
+				PopupMessage("DAMAGE TAKEN!!!", 5.0f);
 				if (CurrentEnemy.HP <= 0)
 				{
 					RemoveEnemy(i);
@@ -264,10 +299,30 @@ void UpdateNavigation(float DeltaTime)
 			Context.WaitForButtonRelease = true;
 		}
 	}
+	if(CurrentGameState == GameState::Combat)
+	{
+		int Initiative = GetInitiative();
+		if(Initiative == -1)
+		{
+			PopupMessage("You have the initiative!", 2.0f);
+		}
+		else
+		{
+			char Msg[128];
+			sprintf(Msg, "%s has the initiative!", GameEnemies[Initiative].EnemyName);
+			PopupMessage(Msg, 2.0f);
+		}
+	}
 }
 
 void TickGame(float DeltaTime)
 {
+	if (PopupTimeLeft > 0.0f)
+	{
+		PopupTimeLeft -= DeltaTime;
+		return;
+	}
+
 	UpdateInputs();
 
 	switch(CurrentGameState)
@@ -320,15 +375,21 @@ __declspec(dllexport)
 		//memset(EngagedEnemies, -1, sizeof(Enemy)*MaxEnemies);
 		InitInputs();
 		InitPlayer();
-		AddEnemy(21.5f, 1.5f);
-		AddEnemy(15.5f, 1.5f);
-		AddEnemy(16.0f, 1.8f);
-		AddEnemy(16.2f, 1.2f);
-		AddEnemy(3.5f,  2.5f);
-		AddEnemy(9.5f, 15.5f);
-		AddEnemy(10.0f, 15.1f);
-		AddEnemy(10.5f, 15.8f);
+		AddEnemy("Skeleton", 1.0f, 21.5f, 1.5f);
+		AddEnemy("Skeleton", 1.0f, 15.5f, 1.5f);
+		AddEnemy("Skeleton", 1.0f, 16.0f, 1.8f);
+		AddEnemy("Skeleton", 1.0f, 16.2f, 1.2f);
+		AddEnemy("Skeleton", 1.0f, 3.5f,  2.5f);
+		AddEnemy("Skeleton", 1.0f, 9.5f, 15.5f);
+		AddEnemy("Skeleton", 1.0f, 10.0f, 15.1f);
+		AddEnemy("Skeleton", 1.0f, 10.5f, 15.8f);
 
+		AddLight(1.0f, 1.0f, 20.0f);
+		AddLight(8.0f, 8.0f, 2.5f);
+		/*
+			{1.0f, 1.0f,1.0f, 200.5f},
+			{8.0f, 8.0f,1.0f, 2.5f},
+			*/
 		uint8_t* pd_screen = pd->graphics->getFrame();
 		screen_fb = pd_screen;
 
@@ -374,7 +435,7 @@ static int update(void* userdata)
 	pd->graphics->drawBitmap(SwordTexture.img, 250, 0, kBitmapUnflipped);
 	pd->system->drawFPS(0, 0);
 
-	renderUI();
+	renderUI(CurrentDeltaMilliseconds);
 
 	return 1;
 }

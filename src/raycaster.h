@@ -10,7 +10,9 @@ extern u8 MAPDATA[MAP_SIZE * MAP_SIZE];
 extern std::vector<GameTexture> texture;
 
 static const u32 MaxSprites = 512;
+static const u32 MaxLights = 32;
 extern Sprite Sprites[MaxSprites];
+extern Light Lights[MaxLights];
 extern EntityBundle<Sprite> SpritesBundle;
 
 void renderFloor();
@@ -20,3 +22,5 @@ int LoadTexture(const char* filename);
 void rotate(float rot);
 int AddSprite(const char* filename, float x, float y);
 void RemoveSprite(int index);
+int AddLight(float x, float y, float radius);
+void RemoveLight(int index);

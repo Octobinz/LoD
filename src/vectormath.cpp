@@ -15,24 +15,6 @@ void vertex_mul(vector2& A, float w)
 	A.y *= w;
 }
 
-float vector_length(const vector4& v) 
-{
-	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
-	return (float)sqrt(sq);
-}
-
-float vector_length(const vector3& v) 
-{
-	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
-	return (float)sqrt(sq);
-}
-
-float vector_length(const vector2& v) 
-{
-	float sq = v.x * v.x + v.y * v.y;
-	return (float)sqrt(sq);
-}
-
 void vector_add(vector2 *z, const vector2 *x, const vector2 *y) 
 {
 	z->x = x->x + y->x;

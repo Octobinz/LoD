@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include <math.h>
 
 
 struct vector2
@@ -62,9 +63,23 @@ float interp(float x1, float x2, float t);
 /*
 	Vector math	
 */
-float vector_length(const vector4& v);
-float vector_length(const vector3& v);
-float vector_length(const vector2& v);
+__forceinline float vector_length(const vector4& v) 
+{
+	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
+	return (float)sqrt(sq);
+}
+
+__forceinline float vector_length(const vector3& v) 
+{
+	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
+	return (float)sqrt(sq);
+}
+
+__forceinline float vector_length(const vector2& v) 
+{
+	float sq = v.x * v.x + v.y * v.y;
+	return (float)sqrt(sq);
+}
 
 void vertex_mul(vector2& A, float w);
 void vector_add(vector2 *z, const vector2 *x, const vector2 *y);

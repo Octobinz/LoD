@@ -21,19 +21,28 @@ uint8_t *screen_fb = NULL;		// frame buffer
 float ZBuffer[SCREEN_WIDTH];
 
 #define numSprites 19
-#define numLights 2
 
 std::vector<GameTexture> texture;
 EntityBundle<Sprite> SpritesBundle;
-
-
-Light lights[numLights] = 
-{
-	{1.0f, 1.0f,1.0f, 200.5f},
-	{8.0f, 8.0f,1.0f, 2.5f},
-};
+EntityBundle<Light> LightsBundle;
 
 Sprite Sprites[MaxSprites];
+Light Lights[MaxLights];
+
+int AddLight(float x, float y, float radius)
+{
+	u32 Index = GetNextIndex(LightsBundle);
+	Light& CurrentLight = Lights[Index];
+	CurrentLight.location.x = x;
+	CurrentLight.location.y = y;
+	CurrentLight.radius = radius;
+	return Index;
+}
+
+void RemoveLight(int index)
+{
+	ReleaseIndex(LightsBundle, index);
+}
 
 int AddSprite(const char* filename, float x, float y)
 {
@@ -87,15 +96,15 @@ float SpriteDistance[MaxSprites];
 
 void SortSprites(int (&SpriteOrder)[MaxSprites])
 {
-	for (int i = 0; i < SpritesBundle.MaxIndex; i++)
+	for (u32 i = 0; i < SpritesBundle.MaxIndex; i++)
 	{
 		SpriteOrder[i] = i;
 		SpriteDistance[i] = ((Context.Position.x - Sprites[i].x) * (Context.Position.x - Sprites[i].x) + (Context.Position.y - Sprites[i].y) * (Context.Position.y - Sprites[i].y));
 	}
 
-	for(int i = 0; i < SpritesBundle.MaxIndex; i++) 
+	for(u32 i = 0; i < SpritesBundle.MaxIndex; i++) 
 	{
-		for(int j = 0; j < SpritesBundle.MaxIndex; j++) 
+		for(u32 j = 0; j < SpritesBundle.MaxIndex; j++) 
 		{
 			float Distance1 = SpriteDistance[SpriteOrder[i]];
 			float Distance2 = SpriteDistance[SpriteOrder[j]];
@@ -156,7 +165,7 @@ void renderFloor()
 	for(int y = 0; y < SCREEN_HEIGHT; ++y)
 	{
 		// whether this section is floor or ceiling
-		bool is_floor = y > SCREEN_HEIGHT / 2 + pitch;
+		bool is_floor = y > HALF_SCREEN_HEIGHT + pitch;
 
 		// rayDir for leftmost ray (x = 0) and rightmost ray (x = w)
 		float rayDirX0 = Context.Direction.x - Context.Plane.x;
@@ -165,7 +174,7 @@ void renderFloor()
 		float rayDirY1 = Context.Direction.y + Context.Plane.y;
 
 		// Current y position compared to the center of the screen (the horizon)
-		int p = is_floor ? (y - SCREEN_HEIGHT / 2 - pitch) : (SCREEN_HEIGHT / 2 - y + pitch);
+		int p = is_floor ? (y - HALF_SCREEN_HEIGHT - pitch) : (HALF_SCREEN_HEIGHT - y + pitch);
 
 		// Vertical position of the camera.
 		// NOTE: with 0.5, it's exactly in the center between floor and ceiling,
@@ -225,8 +234,8 @@ void renderFloor()
 			PixelWorldPosition.z = 0.5f;
 
 			float LightAttenuation = 0.0f;
-			for(int i = 0; i < numLights; i++)
-				LightAttenuation += GetLightAttenuation(PixelWorldPosition, lights[i]);
+			for(u32 i = 0; i < LightsBundle.MaxIndex; i++)
+				LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
 
 			if(is_floor) 
 			{
@@ -358,10 +367,10 @@ void renderWalls()
 		int lineHeight = (int)(SCREEN_HEIGHT / perpWallDist);
 	
 		//calculate lowest and highest pixel to fill in current stripe
-		int drawStart = -lineHeight / 2 + SCREEN_HEIGHT / 2 + pitch;
+		int drawStart = -lineHeight / 2 + HALF_SCREEN_HEIGHT + pitch;
 		if (drawStart < 0) 
 			drawStart = 0;
-		int drawEnd = lineHeight / 2 + SCREEN_HEIGHT / 2 + pitch;
+		int drawEnd = lineHeight / 2 + HALF_SCREEN_HEIGHT + pitch;
 		if (drawEnd >= SCREEN_HEIGHT) 
 			drawEnd = SCREEN_HEIGHT - 1;
 	
@@ -398,7 +407,7 @@ void renderWalls()
 		// How much to increase the texture coordinate per screen pixel
 		float step = 1.0f * texHeight / lineHeight;
 		// Starting texture coordinate
-		float texPos = (drawStart - pitch - SCREEN_HEIGHT / 2 + lineHeight / 2) * step;
+		float texPos = (drawStart - pitch - HALF_SCREEN_HEIGHT + lineHeight / 2) * step;
 	
 		float distWall = perpWallDist;
 		float distPlayer = 0.0f;
@@ -433,8 +442,8 @@ void renderWalls()
 			PixelWorldPosition.y = RayCollision.y - ( texY / texture[texNum].height );// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
 			PixelWorldPosition.z = 0.0f;
 			float LightAttenuation = 0.0f;
-			for(int i = 0; i < numLights; i++)
-				LightAttenuation += GetLightAttenuation(PixelWorldPosition, lights[i]);
+			for(u32 i = 0; i < LightsBundle.MaxIndex; i++)
+				LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
 
 			bool bBlack = (color == 0) || (LightAttenuation < 0.01f);
 
@@ -460,7 +469,7 @@ void renderSprites()
 	SortSprites(SpriteOrder);
 #endif
 	//after sorting the sprites, do the projection and draw them
-	for (int i = 0; i < SpritesBundle.MaxIndex; i++)
+	for (u32 i = 0; i < SpritesBundle.MaxIndex; i++)
 	{
 		Sprite& CurrentSprite = Sprites[SpriteOrder[i]];
 		if(IsIndexValid(SpritesBundle, SpriteOrder[i]))
@@ -517,7 +526,7 @@ void renderSprites()
 				{
 					for (int y = drawStartY; y < drawEndY; y++) //for every pixel of the current stripe
 					{
-						int d = (y-vMoveScreen) - SCREEN_HEIGHT / 2 + spriteHeight / 2;
+						int d = (y-vMoveScreen) - HALF_SCREEN_HEIGHT + spriteHeight / 2;
 						int texY = int((d * texHeight) / spriteHeight);
 						u32 color = samplepixel(CurrentTexture.texture, texX, texY, CurrentTexture.rowbyte); //get current color from the texture
 						u32 mask = samplepixel(CurrentTexture.mask, texX, texY, CurrentTexture.rowbyte); //get current color from the texture
@@ -528,8 +537,8 @@ void renderSprites()
 							PixelWorldPosition.y = transformY;// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
 							PixelWorldPosition.z = 0.0f;
 							float LightAttenuation = 0.0f;
-							for (int i = 0; i < numLights; i++)
-								LightAttenuation += GetLightAttenuation(PixelWorldPosition, lights[i]);
+							for (u32 i = 0; i < LightsBundle.MaxIndex; i++)
+								LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
 	
 							int index = (y * SCREEN_WIDTH) + stripe;
 							int byteIndex = index / 8;

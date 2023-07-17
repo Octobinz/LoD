@@ -3,10 +3,27 @@
 #include "geometry.h"
 #include <math.h>
 
-int getIndexOfFirstZeroBit(u64 num);
-
 const u32 MaxEntities = 65535;
 const u32 MaskCount = MaxEntities >> 6;
+
+//#define FORCEINLINE __forceinline
+#define FORCEINLINE
+
+#ifdef _MSC_VER
+#include <intrin.h>
+__forceinline int getIndexOfFirstZeroBit(u64 num)
+{
+	unsigned long index = 0;
+	unsigned char isNonzero = _BitScanReverse64(&index, num);
+	return isNonzero ? index + 1 : 0;
+}
+#else
+inline int getIndexOfFirstZeroBit(uint64_t num) 
+{
+	return __builtin_clzll(num) ^ 63;
+}
+#endif
+
 
 template<class T>
 struct EntityBundle
@@ -22,14 +39,14 @@ template<class T>
 void InitEntitiesBundle(EntityBundle<T>& InBundle);
 
 template<class T>
-bool IsIndexValid(EntityBundle<T>& InBundle, u32 InIndex)
+FORCEINLINE bool IsIndexValid(EntityBundle<T>& InBundle, u32 InIndex)
 {
 	u64& Mask = InBundle.FreeListMask[InIndex >> 6];
 	return (Mask & (u64(1) << InIndex));
 }
 
 template<class T>
-u32 GetNextIndex(EntityBundle<T>& InBundle)
+FORCEINLINE u32 GetNextIndex(EntityBundle<T>& InBundle)
 {
 	u32 index = 0;
 	for(int i = 0; i < MaskCount; i++)
@@ -48,7 +65,7 @@ u32 GetNextIndex(EntityBundle<T>& InBundle)
 }
 
 template<class T>
-void ReleaseIndex(EntityBundle<T>& InBundle, u32 InIndex)
+FORCEINLINE void ReleaseIndex(EntityBundle<T>& InBundle, u32 InIndex)
 {
 	//--InBundle.EntityCount;
 	u64& Mask = InBundle.FreeListMask[InIndex >> 6];
