@@ -10,7 +10,7 @@ Enemy GameEnemies[MaxEnemies];
 vector2 ObjectsLocations[MaxGameObjects];
 vector2 EnemiesLocations[MaxEnemies];
 
-Enemy EngagedEnemies[MaxEnemies];
+i32 EngagedEnemies[MaxEnemies];
 
 GameState::State CurrentGameState = GameState::State::Max;
 u8 EngagedEnemiesCount = 0;

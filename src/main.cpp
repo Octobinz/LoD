@@ -26,9 +26,25 @@ unsigned int LastMilliseconds = 0;
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <queue>
 
-static char CurrentPopupMessage[512];
-static float PopupTimeLeft = -1.0f;
+struct PopupMessage
+{
+	char PopupMessage[512];
+	float PopupTimeLeft = -1.0f;
+};
+
+std::queue<PopupMessage> PopupMessages;
+
+
+enum CombatTurn
+{
+	Player,
+	Enemies
+};
+
+CombatTurn CurrentTurn = Player;
+u32 CurrentEnemyTurn = 0;
 
 void render() 
 {
@@ -37,19 +53,21 @@ void render()
 	renderSprites();
 }
 
-void PopupMessage(const char* message, float Duration)
+void QueuePopupMessage(const char* message, float Duration)
 {
-	strcpy_s(CurrentPopupMessage, 512, message);
-	PopupTimeLeft = Duration;
+	PopupMessage Message;
+	strcpy_s(Message.PopupMessage, 512, message);
+	Message.PopupTimeLeft = Duration;
+	PopupMessages.push(Message);
 }
 
 void renderUI(float DeltaTime)
 {
-	if(PopupTimeLeft > 0.0f)
+	if(!PopupMessages.empty() && PopupMessages.front().PopupTimeLeft > 0.0f)
 	{
 		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
 		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-		pd->graphics->drawText(CurrentPopupMessage, strlen(CurrentPopupMessage), kASCIIEncoding, 80, 10);
+		pd->graphics->drawText(PopupMessages.front().PopupMessage, strlen(PopupMessages.front().PopupMessage), kASCIIEncoding, 80, 10);
 	}
 
 	if (CurrentGameState == GameState::Combat)
@@ -99,14 +117,14 @@ void renderUI(float DeltaTime)
 //returns -1 for player, index for enemy
 int GetInitiative()
 {
-	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
+	for(u32 i = 0; i < EngagedEnemiesCount; i++)
 	{
-		Enemy& CurrentEnemy = GameEnemies[i];
-		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, i))
+		Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[i]];
+		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, EngagedEnemies[i]))
 		{
 			if(CurrentEnemy.Initiative > Context.Initiative)
 			{
-				return i;
+				return EngagedEnemies[i];
 			}
 		} 
 	}
@@ -150,6 +168,7 @@ void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 
 void InitPlayer()
 {
+	memset(EngagedEnemies, -1, MaxEnemies*sizeof(i32));
 	Context.Radius = 1.1f;
 	CurrentGameState = GameState::Navigation;
 	Context.SwordSprite.texture = LoadTexture("textures/player_sword_1.png");
@@ -203,10 +222,11 @@ void UpdateCombat(float DeltaTime)
 		//pitch += 10;
 		//lights[0].radius -= 0.1f;
 	}
-	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
+
+	for(u32 i = 0; i < EngagedEnemiesCount; i++)
 	{
-		Enemy& CurrentEnemy = GameEnemies[i];
-		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, i))
+		Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[i]];
+		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, EngagedEnemies[i]))
 		{
 			if (CurrentEnemy.CurrentAttackTimer < 0.0f)
 			{
@@ -214,16 +234,32 @@ void UpdateCombat(float DeltaTime)
 				//Attack player
 			}
 			CurrentEnemy.CurrentAttackTimer -= DeltaTime;
-	
-			if (bAttacked)
+
+			if (CurrentTurn == CombatTurn::Player)
 			{
-				CurrentEnemy.HP -= 25;
-				PopupMessage("DAMAGE TAKEN!!!", 5.0f);
-				if (CurrentEnemy.HP <= 0)
+				if (bAttacked)
 				{
-					RemoveEnemy(i);
-					CurrentGameState = GameState::Navigation;
+					CurrentEnemy.HP -= 25;
+					QueuePopupMessage("DAMAGE DONE!!!", 1.5f);
+					CurrentTurn = CombatTurn::Enemies;
+					if (CurrentEnemy.HP <= 0)
+					{
+						RemoveEnemy(EngagedEnemies[i]);
+						EngagedEnemies[i] = -1;
+						memcpy(&EngagedEnemies[i], &EngagedEnemies[i + 1], (MaxEnemies - i)-1);
+						EngagedEnemiesCount--;
+						if (EngagedEnemiesCount == 0)
+							CurrentGameState = GameState::Navigation;
+					}
 				}
+			}
+			else
+			{
+				char Msg[128];
+				sprintf(Msg, "%s uses it's sword!", GameEnemies[EngagedEnemies[i]].EnemyName);
+				QueuePopupMessage(Msg, 2.0f);
+				QueuePopupMessage("DAMAGE RECEIVED!!!", 1.5f);
+				CurrentTurn = CombatTurn::Player;
 			}
 		}
 	}
@@ -281,7 +317,7 @@ void UpdateNavigation(float DeltaTime)
 			Context.Position.y = futurey;
 		}
 	}
-
+	EngagedEnemiesCount = 0;
 	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
 	{
 		vector2& CurrentLocation = EnemiesLocations[i];
@@ -293,36 +329,46 @@ void UpdateNavigation(float DeltaTime)
 		if (DP < (Context.Radius*Context.Radius) && !GameEnemies[i].Engaged && IsIndexValid(EnemiesBundle, i))
 		{
 			GameEnemies[i].Engaged = true;
-			//EngagedEnemies[EngagedEnemiesCount] = GameEnemies[i];
+			EngagedEnemies[EngagedEnemiesCount] = i;
 			++EngagedEnemiesCount;
 			CurrentGameState = GameState::Combat;
 			Context.WaitForButtonRelease = true;
 		}
 	}
+
 	if(CurrentGameState == GameState::Combat)
 	{
 		int Initiative = GetInitiative();
 		if(Initiative == -1)
 		{
-			PopupMessage("You have the initiative!", 2.0f);
+			QueuePopupMessage("You have the initiative!", 2.0f);
+			CurrentTurn = CombatTurn::Player;
 		}
 		else
 		{
+			CurrentTurn = CombatTurn::Enemies;
 			char Msg[128];
 			sprintf(Msg, "%s has the initiative!", GameEnemies[Initiative].EnemyName);
-			PopupMessage(Msg, 2.0f);
+			QueuePopupMessage(Msg, 2.0f);
 		}
 	}
 }
 
 void TickGame(float DeltaTime)
 {
-	if (PopupTimeLeft > 0.0f)
+	if (!PopupMessages.empty() && PopupMessages.front().PopupTimeLeft > 0.0f)
 	{
-		PopupTimeLeft -= DeltaTime;
-		return;
+		PopupMessages.front().PopupTimeLeft -= DeltaTime;
+		if(PopupMessages.front().PopupTimeLeft <= 0.0f)
+		{
+			PopupMessages.pop();
+		}
 	}
 
+	if(!PopupMessages.empty())
+	{
+		return;
+	}
 	UpdateInputs();
 
 	switch(CurrentGameState)

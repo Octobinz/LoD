@@ -116,6 +116,7 @@ struct Enemy
 
 extern GameObject GameObjects[MaxGameObjects];
 extern Enemy GameEnemies[MaxEnemies];
+extern i32 EngagedEnemies[MaxEnemies];
 extern vector2 EnemiesLocations[MaxGameObjects];
 extern vector2 ObjectsLocations[MaxGameObjects];
 //extern Enemy EngagedEnemies[MaxEnemies];
