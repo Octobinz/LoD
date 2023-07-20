@@ -52,7 +52,6 @@ namespace SelectedMenu
 struct GameObject;
 
 static const u32 MaxGameObjects = 256;
-static const u32 MaxEnemies = 256;
 
 extern PlaydateAPI* pd;
 
@@ -91,6 +90,7 @@ struct PlayerContext
 
 	Sprite _64SquareSprite;
 	Sprite _256RectangleSprite;
+	Sprite SlashSprite;
 
 	CombatMenu::Option CurrentCombatOption = CombatMenu::Option::Attack;
 	CombatMenu::AttackOption CurrentAttackOption = CombatMenu::AttackOption::Stab;
@@ -117,24 +117,7 @@ struct GameObject
 	float Radius = 1.0f;
 };
 
-struct Enemy
-{
-	char EnemyName[128];
-	int Object;
-	int Locator;
-	bool Engaged = false;
-	float AttackTimer = 1.0f;// In seconds
-	float CurrentAttackTimer = 1.0f;// In seconds
-	float Initiative = 1.0f;
-	int HP = 100;
-
-	//Attack timer, hp, endurance etc...
-};
-
 extern GameObject GameObjects[MaxGameObjects];
-extern Enemy GameEnemies[MaxEnemies];
-extern i32 EngagedEnemies[MaxEnemies];
-extern vector2 EnemiesLocations[MaxGameObjects];
 extern vector2 ObjectsLocations[MaxGameObjects];
 //extern Enemy EngagedEnemies[MaxEnemies];
 extern u8 EngagedEnemiesCount;
@@ -142,7 +125,6 @@ extern u8 CurrentEnemiesCount;
 extern u8 CurrentGameObjectCount;
 extern u8 CurrentEnemyLocatorCount;
 extern EntityBundle<GameObject> GameObjectsBundle;
-extern EntityBundle<Enemy> EnemiesBundle;
 
 namespace GameState
 {

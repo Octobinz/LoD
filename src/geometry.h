@@ -63,19 +63,19 @@ float interp(float x1, float x2, float t);
 /*
 	Vector math	
 */
-__forceinline float vector_length(const vector4& v) 
+FORCEINLINE float vector_length(const vector4& v) 
 {
 	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
 	return (float)sqrt(sq);
 }
 
-__forceinline float vector_length(const vector3& v) 
+FORCEINLINE float vector_length(const vector3& v) 
 {
 	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
 	return (float)sqrt(sq);
 }
 
-__forceinline float vector_length(const vector2& v) 
+FORCEINLINE float vector_length(const vector2& v) 
 {
 	float sq = v.x * v.x + v.y * v.y;
 	return (float)sqrt(sq);
@@ -85,7 +85,7 @@ void vertex_mul(vector2& A, float w);
 void vector_add(vector2 *z, const vector2 *x, const vector2 *y);
 void vector_add(vector4 *z, const vector4 *x, const vector4 *y);
 void vector_sub(vector4 *z, const vector4 *x, const vector4 *y);
-__forceinline float vector_dotproduct(const vector2 &x, const vector2 &y)
+FORCEINLINE float vector_dotproduct(const vector2 &x, const vector2 &y)
 {
 	return x.x * y.x + x.y * y.y;
 };
@@ -117,7 +117,7 @@ void matrix_set_perspective(matrix_4x4 *m, float fovy, float aspect, float zn, f
 void trapezoid_edge_interp(trapezoid_t *trap, float y);
 void trapezoid_init_scan_line(const trapezoid_t *trap, scanline_t *scanline, int y);
 
-template <typename T> __forceinline  int sgn(T val) 
+template <typename T> FORCEINLINE  int sgn(T val) 
 {
 	return (T(0) < val) - (val < T(0));
 }

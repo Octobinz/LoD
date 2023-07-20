@@ -24,7 +24,7 @@ bool IsKeyReleased(InputKeys InInputKey)
 	return inputs_released & (1 << InInputKey);
 }
 
-__forceinline void SetValue(u32& buffer, InputKeys index, bool value)
+FORCEINLINE void SetValue(u32& buffer, InputKeys index, bool value)
 {
 	if(value)
 	{

@@ -16,10 +16,16 @@ extern "C"
 #include "raycaster.h"
 #include "locator.h"
 #include "inputs.h"
+#include "growarray.h"
+#include "enemies.h"
+#include "party.h"
 
 static int update(void* userdata);
 const char* fontpath = "/System/Fonts/Asheville-Sans-14-Bold.pft";
+const char* fontpathSmall = "Fonts/namco-1x";
+
 LCDFont* font = NULL;
+LCDFont* fontSmall = NULL;
 unsigned int StartupMilliseconds = 0;
 float CurrentDeltaMilliseconds = 0.0f;
 unsigned int LastMilliseconds = 0;
@@ -28,14 +34,55 @@ unsigned int LastMilliseconds = 0;
 #include <stdbool.h>
 #include <queue>
 
+namespace EventSystem
+{
+	enum Type
+	{
+		PopupMessage,
+		CombatAnim,
+		VFX,
+		SFX
+	};
+
+	struct Event
+	{
+		Type EventType = PopupMessage;
+		bool blocking = false;
+		float TimeLeft = 0.0f;
+		void* Data = nullptr;
+	};
+}
+
 struct PopupMessage
 {
 	char PopupMessage[512];
-	float PopupTimeLeft = -1.0f;
 };
 
-std::queue<PopupMessage> PopupMessages;
+struct VFX
+{
+	int texture;
+	int x;
+	int y;
+};
 
+std::vector<EventSystem::Event> EventQueue;
+
+template<class T>
+T& GetEvent(int index)
+{
+	return *static_cast<T*>(EventQueue[index].Data);
+}
+
+template<class T>
+void AddEvent(EventSystem::Type EventType, T* InEvent, float duration, bool blocking)
+{
+	EventSystem::Event E;
+	E.TimeLeft = duration;
+	E.EventType = EventType;
+	E.Data = InEvent;
+	E.blocking = blocking;
+	EventQueue.push_back(E);
+}
 
 enum CombatTurn
 {
@@ -43,22 +90,39 @@ enum CombatTurn
 	Enemies
 };
 
+
 CombatTurn CurrentTurn = Player;
 u32 CurrentEnemyTurn = 0;
 
-void render() 
+void RenderFrame() 
 {
-	renderFloor();
-	renderWalls();
+	if (CurrentGameState != GameState::State::Combat)
+	{
+		renderFloor();
+		renderWalls();
+	}
+
+	if (CurrentGameState == GameState::State::Combat)
+	{
+		RenderCombatBG();
+	}
 	renderSprites();
 }
 
-void QueuePopupMessage(const char* message, float Duration)
+void QueuePopupMessage(const char* message, float Duration, bool blocking = true)
 {
-	PopupMessage Message;
-	strcpy_s(Message.PopupMessage, 512, message);
-	Message.PopupTimeLeft = Duration;
-	PopupMessages.push(Message);
+	PopupMessage* Message = new PopupMessage();
+	strcpy_s(Message->PopupMessage, 512, message);
+	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
+}
+
+void QueueVFX(int InTexture, int x, int y, float Duration, bool blocking = false)
+{
+	VFX* Effect = new VFX();
+	Effect->x = x;
+	Effect->y = y;
+	Effect->texture = InTexture;
+	AddEvent(EventSystem::VFX, Effect, Duration, blocking);
 }
 
 void RenderSpellMainMenu()
@@ -186,27 +250,91 @@ void RenderCombatUI()
 	}
 }
 
+void RenderParty()
+{
+	float yOffset = 0.0f;
+	int CurrentPartyMember = 3;
+	for (int i = 0; i < /*CurrentPartyCount*/4; i++)
+	{
+		GameTexture& UI64Square = texture.Get(Context._64SquareSprite.texture);
+		float UIScale = 0.8f;
+		if (i == CurrentPartyMember)
+			UIScale = 1.0f;
+		pd->graphics->drawScaledBitmap(UI64Square.img, 0, yOffset, UIScale,UIScale);
+
+		float MugshotScale = 0.35f;
+		if (i == CurrentPartyMember)
+			MugshotScale = 0.45f;
+		GameTexture& Mugshot = texture.Get(GameParty[i].Mugshot);
+		pd->graphics->drawScaledBitmap(Mugshot.img, 3, 4+yOffset, MugshotScale, MugshotScale);
+		
+		if (i == CurrentPartyMember)
+		{
+			pd->graphics->setFont(fontSmall);
+			pd->graphics->setDrawMode(kDrawModeInverted);
+			pd->graphics->drawText(GameParty[i].Name, strlen(GameParty[i].Name), kASCIIEncoding, 8, yOffset + 5);
+			pd->graphics->setDrawMode(kDrawModeCopy);
+			//pd->graphics->setFont(font);
+		}
+		yOffset += 64 * UIScale;
+
+	}
+}
+
+void RenderVFX(VFX& InVFX)
+{
+	GameTexture& Effect = texture.Get(InVFX.texture);
+	pd->graphics->drawBitmap(Effect.img, InVFX.x, InVFX.y, kBitmapUnflipped);
+}
+
+void RenderPopup(PopupMessage* InPopupMessage)
+{
+/*	char Message[512];
+	strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
+*/
+	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
+	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
+	pd->graphics->drawText(InPopupMessage->PopupMessage, strlen(InPopupMessage->PopupMessage), kASCIIEncoding, 80, 10);
+}
+
 void renderUI(float DeltaTime)
 {
-	if(!PopupMessages.empty() && PopupMessages.front().PopupTimeLeft > 0.0f)
+	bool blocked = false;
+	if (false == EventQueue.empty())
 	{
-		PopupMessage& M = PopupMessages.front();
-
-		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
-		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-		pd->graphics->drawText(M.PopupMessage, strlen(M.PopupMessage), kASCIIEncoding, 80, 10);
+		for (int i = 0; i < EventQueue.size(); i++)
+		{
+			EventSystem::Event& M = EventQueue[i];
+			switch (M.EventType)
+			{
+				case EventSystem::Type::PopupMessage:
+				{
+					RenderPopup(static_cast<PopupMessage*>(M.Data));
+				}
+				break;
+				case EventSystem::Type::VFX:
+				{
+					RenderVFX(*static_cast<VFX*>(M.Data));
+				}
+				break;
+		
+			}
+			if (M.blocking)
+				continue;
+		}
 	}
 
 	if (CurrentGameState == GameState::Combat)
-	{
-		GameTexture& UI64Square = texture[Context._64SquareSprite.texture];
-		pd->graphics->drawBitmap(UI64Square.img, 0, 175, kBitmapUnflipped);
-	
-		GameTexture& UI256Rectangle = texture[Context._256RectangleSprite.texture];
+	{	
+		GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
 		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
 		RenderCombatUI();
 	}
+
+	RenderParty();
 }
+
+
 
 //returns -1 for player, index for enemy
 int GetInitiative()
@@ -239,8 +367,8 @@ static LCDBitmap *loadImageAtPath(const char *path)
 void RemoveEnemy(u32 index)
 {
 	Enemy& CurrentEnemy = GameEnemies[index];
-	RemoveSprite(GameObjects[CurrentEnemy.Object].ObjectSprite);
-	ReleaseIndex(GameObjectsBundle, CurrentEnemy.Object);
+	RemoveSprite(GameObjects[CurrentEnemy.IdleObject].ObjectSprite);
+	ReleaseIndex(GameObjectsBundle, CurrentEnemy.IdleObject);
 	ReleaseIndex(EnemiesLocatorsBundle, CurrentEnemy.Locator);
 	ReleaseIndex(EnemiesBundle, index);
 }
@@ -248,14 +376,14 @@ void RemoveEnemy(u32 index)
 void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 {
 	u32 LocatorIndex = GetNextIndex(EnemiesLocatorsBundle);
-	u32 GameObjectIndex = GetNextIndex(GameObjectsBundle);
+	u32 IdleObjectIndex = GetNextIndex(GameObjectsBundle);
 	u32 EnemyIndex = GetNextIndex(EnemiesBundle);
 
 	Enemy& CurrentEnemy = GameEnemies[EnemyIndex];
 	strcpy_s(CurrentEnemy.EnemyName, 128, EnemyName);
-	CurrentEnemy.Object = GameObjectIndex;
+	CurrentEnemy.IdleObject = IdleObjectIndex;
 	CurrentEnemy.Locator = LocatorIndex;
-	GameObjects[GameObjectIndex].ObjectSprite = AddSprite("textures/skeleton.png", x, y);
+	GameObjects[IdleObjectIndex].ObjectSprite = AddSprite("textures/skeleton.png", x, y);
 	EnemiesLocations[LocatorIndex].x = x;
 	EnemiesLocations[LocatorIndex].y = y;
 }
@@ -268,7 +396,26 @@ void InitPlayer()
 	Context.SwordSprite.texture = LoadTexture("textures/player_sword_1.png");
 	Context.ShieldSprite.texture = LoadTexture("textures/player_shield_1.png");
 	Context._64SquareSprite.texture = LoadTexture("textures/ui/64Square.png");
+	Context.SlashSprite.texture = LoadTexture("textures/ui/slash_effect.png");
 	Context._256RectangleSprite.texture = LoadTexture("textures/ui/256Rectangle.png");
+
+	//Create party
+	u32 PartyIndex = GetNextIndex(PartyBundle);
+	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/warrior_mugshot.png");
+	strcpy_s(GameParty[PartyIndex].Name, 128, "Player");
+
+	PartyIndex = GetNextIndex(PartyBundle);
+	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/monk_mugshot.png");
+	strcpy_s(GameParty[PartyIndex].Name, 128, "Monk");
+
+	PartyIndex = GetNextIndex(PartyBundle);
+	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/witch_mugshot.png");
+	strcpy_s(GameParty[PartyIndex].Name, 128, "Witch");
+
+	PartyIndex = GetNextIndex(PartyBundle);
+	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/otter_mugshot.png");
+	strcpy_s(GameParty[PartyIndex].Name, 128, "Otter");
+
 }
 
 
@@ -377,7 +524,10 @@ void UpdateCombat(float DeltaTime)
 				if (bAttacked)
 				{
 					CurrentEnemy.HP -= 25;
+					QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
 					QueuePopupMessage("25 Damages done!", 1.5f);
+					GameTexture& Slash = texture.Get(Context.SlashSprite.texture);
+
 					CurrentTurn = CombatTurn::Enemies;
 					if (CurrentEnemy.HP <= 0)
 					{
@@ -394,8 +544,10 @@ void UpdateCombat(float DeltaTime)
 			{
 				char Msg[128];
 				sprintf(Msg, "%s uses it's sword!", GameEnemies[EngagedEnemies[i]].EnemyName);
+				QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
 				QueuePopupMessage(Msg, 2.0f);
 				QueuePopupMessage("15 Damages received!", 1.5f);
+
 				CurrentTurn = CombatTurn::Player;
 			}
 		}
@@ -487,26 +639,38 @@ void UpdateNavigation(float DeltaTime)
 			char Msg[128];
 			sprintf(Msg, "%s has the initiative!", GameEnemies[Initiative].EnemyName);
 			QueuePopupMessage(Msg, 2.0f);
+			
+			/*const auto processor_count = std::thread::hardware_concurrency();
+			sprintf(Msg, "%d core count!", processor_count);
+			QueuePopupMessage(Msg, 2.0f);*/
 		}
 	}
 }
 
 void TickGame(float DeltaTime)
 {
-	if (!PopupMessages.empty() && PopupMessages.front().PopupTimeLeft > 0.0f)
+	if (!EventQueue.empty())
 	{
-		PopupMessage& M = PopupMessages.front();
-		M.PopupTimeLeft -= DeltaTime;
-		if(M.PopupTimeLeft <= 0.0f)
+		for(int i = 0; i < EventQueue.size(); i++)
 		{
-			PopupMessages.pop();
+			EventSystem::Event& M = EventQueue[i];
+			M.TimeLeft -= DeltaTime;
+			if(M.TimeLeft <= 0.0f)
+			{
+				delete M.Data;
+				EventQueue.pop_back();
+				return;
+			}
+			else
+			{
+				if(M.blocking)
+				{
+					return;
+				}
+			}
 		}
 	}
 
-	if(!PopupMessages.empty())
-	{
-		return;
-	}
 	UpdateInputs();
 
 	switch(CurrentGameState)
@@ -532,6 +696,7 @@ __declspec(dllexport)
 		pd = InPD;
 		const char* err;
 		font = pd->graphics->loadFont(fontpath, &err);
+		fontSmall = pd->graphics->loadFont(fontpathSmall, &err);
 		
 		if (font == NULL)
 			pd->system->error("%s:%i Couldn't load font %s: %s", __FILE__, __LINE__, fontpath, err);
@@ -570,22 +735,17 @@ __declspec(dllexport)
 
 		AddLight(1.0f, 1.0f, 20.0f);
 		AddLight(8.0f, 8.0f, 2.5f);
-		/*
-			{1.0f, 1.0f,1.0f, 200.5f},
-			{8.0f, 8.0f,1.0f, 2.5f},
-			*/
+
 		uint8_t* pd_screen = pd->graphics->getFrame();
 		screen_fb = pd_screen;
 
 		Context.Position.x = 5; 
 		Context.Position.y = 5;
-		vector2 v;
-		v.x = -1.0f;
-		v.y = 0.1f;
+
+		vector2 v = {-1.0f, 0.1f};
 		vector_normalize(v);
 		Context.Direction = v;
-		Context.Plane.x = 0.0f; 
-		Context.Plane.y = 0.66f;
+		Context.Plane = { 0.0f, 0.66f };
 		StartupMilliseconds = pd->system->getCurrentTimeMilliseconds();
 		CurrentDeltaMilliseconds = 0;
 		LastMilliseconds = StartupMilliseconds;
@@ -604,7 +764,7 @@ static int update(void* userdata)
 	CurrentDeltaMilliseconds = (MS - LastMilliseconds) / 1000.0f;
 	LastMilliseconds = MS;
 
-	pd->graphics->setFont(font);
+	pd->graphics->setFont(fontSmall);
 	//pd->graphics->drawText("Hello World!", strlen("Hello World!"), kASCIIEncoding, 0, 0);
 	pd->graphics->markUpdatedRows(0, 240 - 1);
 	pd->graphics->clear(kColorWhite);
@@ -613,9 +773,9 @@ static int update(void* userdata)
 
 
 	TickGame(CurrentDeltaMilliseconds);
-	render();
+	RenderFrame();
 
-	GameTexture& SwordTexture = texture[Context.SwordSprite.texture];
+	GameTexture& SwordTexture = texture.Get(Context.SwordSprite.texture);
 	pd->graphics->drawBitmap(SwordTexture.img, 250, 0, kBitmapUnflipped);
 	pd->system->drawFPS(0, 0);
 

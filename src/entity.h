@@ -6,19 +6,16 @@
 const u32 MaxEntities = 65535;
 const u32 MaskCount = MaxEntities >> 6;
 
-//#define FORCEINLINE __forceinline
-#define FORCEINLINE
-
 #ifdef _MSC_VER
 #include <intrin.h>
-__forceinline int getIndexOfFirstZeroBit(u64 num)
+FORCEINLINE int getIndexOfFirstZeroBit(u64 num)
 {
 	unsigned long index = 0;
 	unsigned char isNonzero = _BitScanReverse64(&index, num);
 	return isNonzero ? index + 1 : 0;
 }
 #else
-inline int getIndexOfFirstZeroBit(uint64_t num) 
+FORCEINLINE int getIndexOfFirstZeroBit(uint64_t num) 
 {
 	return __builtin_clzll(num) ^ 63;
 }

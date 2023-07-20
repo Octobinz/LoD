@@ -3,7 +3,6 @@
 #include <math.h>
 #include <assert.h>
 #include <cmath>
-#include <vector>
 #include <tchar.h>
 
 extern "C"
@@ -13,7 +12,8 @@ extern "C"
 #include "geometry.h"
 #include "gameobject.h"
 #include "raycaster.h"
-
+#include "growarray.h"
+#include <float.h>
 
 uint8_t *screen_fb = NULL;		// frame buffer
 
@@ -22,7 +22,7 @@ float ZBuffer[SCREEN_WIDTH];
 
 #define numSprites 19
 
-std::vector<GameTexture> texture;
+GrowArray<GameTexture> texture;
 EntityBundle<Sprite> SpritesBundle;
 EntityBundle<Light> LightsBundle;
 
@@ -72,21 +72,24 @@ int LoadTexture(const char* filename)
 	uint8_t* mask; 
 	uint8_t* data; 
 	pd->graphics->getBitmapData(img, &width, &height, &rowbytes, &mask, &data);
-	int index = texture.size();
-	texture.push_back(GameTexture());
-
-	texture[index].texture = (u8*)malloc(width * height);
-	texture[index].mask = (u8*)malloc(width * height);
-	texture[index].width = width;
-	texture[index].height = height;
-	texture[index].rowbyte = rowbytes;
-	texture[index].img = img;
-	memcpy(texture[index].texture, data, (width*height) / 8);
+	int index = texture.Count();
+	
+	GameTexture G;
+	G.texture = (u8*)malloc(width * height);
+	G.mask = (u8*)malloc(width * height);
+	G.width = width;
+	G.height = height;
+	G.rowbyte = rowbytes;
+	G.img = img;
+	memcpy(G.texture, data, (width*height) / 8);
 	
 	if (mask != nullptr)
 	{
-		memcpy(texture[index].mask, mask, (width*height) / 8);
+		memcpy(G.mask, mask, (width*height) / 8);
 	}
+
+	texture.AddElement(G);
+
 	return index;
 }
 
@@ -218,10 +221,10 @@ void renderFloor()
 			int checkerBoardPattern = (int(cellX + cellY)) & 1;
 			int floorTexture = 11;
 			int ceilingTexture = 6;
-
+			GameTexture& Tex = texture.Get(floorTexture);
 			// get the texture coordinate from the fractional part
-			int tx = (int)(texture[floorTexture].width * (floorX - cellX)) & (texture[floorTexture].width - 1);
-			int ty = (int)(texture[floorTexture].height * (floorY - cellY)) & (texture[floorTexture].height - 1);
+			int tx = (int)(Tex.width * (floorX - cellX)) & (Tex.width - 1);
+			int ty = (int)(Tex.height * (floorY - cellY)) & (Tex.height - 1);
 
 			floorX += floorStepX;
 			floorY += floorStepY;
@@ -240,7 +243,7 @@ void renderFloor()
 			if(is_floor) 
 			{
 				// floor
-				color = samplepixel(texture[floorTexture].texture, tx, ty, texture[floorTexture].rowbyte);
+				color = samplepixel(Tex.texture, tx, ty, Tex.rowbyte);
 				int index = (y * SCREEN_WIDTH) + x;
 				int byteIndex = index / 8;
 				int bitOffset = index % 8;
@@ -259,7 +262,7 @@ void renderFloor()
 			else 
 			{
 				//ceiling
-				color = samplepixel(texture[1].texture, tx, ty, texture[1].rowbyte);
+				color = samplepixel(Tex.texture, tx, ty, Tex.rowbyte);
 
 				//color = texture[ceilingTexture][texWidth * ty + tx];
 				int index = (y * SCREEN_WIDTH) + x;
@@ -304,8 +307,8 @@ void renderWalls()
 	
 		//length of ray from one x or y-side to next x or y-side
 		vector2 deltaDist;
-		deltaDist.x = (RayDirection.x == 0.0f) ? 1e30 : std::abs(1.0f / RayDirection.x);
-		deltaDist.y = (RayDirection.y == 0.0f) ? 1e30 : std::abs(1.0f / RayDirection.y);
+		deltaDist.x = (RayDirection.x == 0.0f) ? FLT_MAX : std::abs(1.0f / RayDirection.x);
+		deltaDist.y = (RayDirection.y == 0.0f) ? FLT_MAX : std::abs(1.0f / RayDirection.y);
 		float perpWallDist;
 	
 		//what direction to step in x or y-direction (either +1 or -1)
@@ -393,8 +396,10 @@ void renderWalls()
 		}
 		float wallX = OwallX-floor(OwallX);
 	
-		int texWidth = texture[texNum].width;
-		int texHeight = texture[texNum].height;
+		GameTexture& Tex = texture.Get(texNum);
+
+		int texWidth = Tex.width;
+		int texHeight = Tex.height;
 
 		//x coordinate on the texture
 		int texX = int(wallX * float(texWidth));
@@ -421,7 +426,7 @@ void renderWalls()
 			assert(texY < texWidth);
 			int texNum = MAPDATA[mapX + mapY * MAP_SIZE]; //1 subtracted from it so that texture 0 can be used!
 
-			u32 color = samplepixel(texture[texNum].texture, texX, texY, texture[texNum].rowbyte);
+			u32 color = samplepixel(Tex.texture, texX, texY, Tex.rowbyte);
 
 			//texture[texNum][texHeight * texY + texX];
 	
@@ -438,8 +443,8 @@ void renderWalls()
 
 			//Is the pixel affected by a light
 			vector3 PixelWorldPosition;
-			PixelWorldPosition.x = RayCollision.x - ( texX / texture[texNum].width );
-			PixelWorldPosition.y = RayCollision.y - ( texY / texture[texNum].height );// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
+			PixelWorldPosition.x = RayCollision.x - ( texX / Tex.width );
+			PixelWorldPosition.y = RayCollision.y - ( texY / Tex.height );// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
 			PixelWorldPosition.z = 0.0f;
 			float LightAttenuation = 0.0f;
 			for(u32 i = 0; i < LightsBundle.MaxIndex; i++)
@@ -459,6 +464,13 @@ void renderWalls()
 		}
 		ZBuffer[x] = perpWallDist; //perpendicular distance is used
 	}
+}
+
+void RenderCombatBG()
+{
+	//pd->graphics->setDrawMode( kDrawModeInverted );
+	pd->graphics->fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,  kColorBlack);
+	pd->graphics->setDrawMode( kDrawModeCopy );
 }
 
 void renderSprites()
@@ -492,10 +504,10 @@ void renderSprites()
 	
 			//parameters for scaling and moving the sprites
 	#define vMove 0.0f
-			int vMoveScreen = int(vMove / transformY) + pitch + posZ / transformY;
+			int vMoveScreen = int(vMove / transformY) + pitch + int(posZ / transformY);
 	
 			//calculate height of the sprite on screen
-			int spriteHeight = abs(int(SCREEN_HEIGHT / (transformY))) / CurrentSprite.scale; //using "transformY" instead of the real distance prevents fisheye
+			int spriteHeight = int(fabs(int(SCREEN_HEIGHT / (transformY))) / CurrentSprite.scale); //using "transformY" instead of the real distance prevents fisheye
 			//calculate lowest and highest pixel to fill in current stripe
 			int drawStartY = -(spriteHeight>> 1) + (SCREEN_HEIGHT>> 1) + vMoveScreen;
 			if (drawStartY < 0) drawStartY = 0;
@@ -503,13 +515,13 @@ void renderSprites()
 			if (drawEndY >= SCREEN_HEIGHT) drawEndY = SCREEN_HEIGHT - 1;
 	
 			//calculate width of the sprite
-			int spriteWidth = abs(int (SCREEN_HEIGHT / (transformY))) / CurrentSprite.scale;
+			int spriteWidth = int(fabs(int (SCREEN_HEIGHT / (transformY))) / CurrentSprite.scale);
 			int drawStartX = -spriteWidth / 2 + spriteScreenX;
 			if (drawStartX < 0) drawStartX = 0;
 			int drawEndX = spriteWidth / 2 + spriteScreenX;
 			if (drawEndX >= SCREEN_WIDTH) drawEndX = SCREEN_WIDTH - 1;
 	
-			GameTexture& CurrentTexture = texture[CurrentSprite.texture];
+			GameTexture& CurrentTexture = texture.Get(CurrentSprite.texture);
 			int texWidth = CurrentTexture.width;
 			int texHeight = CurrentTexture.height;
 	
