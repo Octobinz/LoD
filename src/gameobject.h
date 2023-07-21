@@ -100,7 +100,6 @@ struct PlayerContext
 	float Radius = 1.0f;
 	float Initiative = 0.1f;
 	bool WaitForButtonRelease = false;
-
 };
 
 extern PlayerContext Context;

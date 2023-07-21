@@ -40,6 +40,7 @@ namespace EventSystem
 	{
 		PopupMessage,
 		CombatAnim,
+		DialogueMessage,
 		VFX,
 		SFX
 	};
@@ -48,6 +49,7 @@ namespace EventSystem
 	{
 		Type EventType = PopupMessage;
 		bool blocking = false;
+		bool processed = false;
 		float TimeLeft = 0.0f;
 		void* Data = nullptr;
 	};
@@ -55,7 +57,13 @@ namespace EventSystem
 
 struct PopupMessage
 {
-	char PopupMessage[512];
+	char Message[512];
+};
+
+struct DialogueMessage : public PopupMessage
+{
+	int PartyMember1;
+	int PartyMember2;
 };
 
 struct VFX
@@ -81,6 +89,7 @@ void AddEvent(EventSystem::Type EventType, T* InEvent, float duration, bool bloc
 	E.EventType = EventType;
 	E.Data = InEvent;
 	E.blocking = blocking;
+	E.processed = false;
 	EventQueue.push_back(E);
 }
 
@@ -112,9 +121,17 @@ void RenderFrame()
 void QueuePopupMessage(const char* message, float Duration, bool blocking = true)
 {
 	PopupMessage* Message = new PopupMessage();
-	strcpy_s(Message->PopupMessage, 512, message);
+	strcpy_s(Message->Message, 512, message);
 	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
 }
+
+void QueueDialogueMessage(const char* message, float Duration, bool blocking = true)
+{
+	DialogueMessage* Message = new DialogueMessage();
+	strcpy_s(Message->Message, 512, message);
+	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
+}
+
 
 void QueueVFX(int InTexture, int x, int y, float Duration, bool blocking = false)
 {
@@ -294,7 +311,17 @@ void RenderPopup(PopupMessage* InPopupMessage)
 */
 	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
 	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-	pd->graphics->drawText(InPopupMessage->PopupMessage, strlen(InPopupMessage->PopupMessage), kASCIIEncoding, 80, 10);
+	pd->graphics->drawText(InPopupMessage->Message, strlen(InPopupMessage->Message), kASCIIEncoding, 80, 10);
+}
+
+void RenderDialogue(DialogueMessage* InDialogueMessage)
+{
+	/*	char Message[512];
+		strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
+	*/
+	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
+	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
+	pd->graphics->drawText(InDialogueMessage->Message, strlen(InDialogueMessage->Message), kASCIIEncoding, 80, 10);
 }
 
 void renderUI(float DeltaTime)
@@ -305,6 +332,7 @@ void renderUI(float DeltaTime)
 		for (int i = 0; i < EventQueue.size(); i++)
 		{
 			EventSystem::Event& M = EventQueue[i];
+			M.processed = true;
 			switch (M.EventType)
 			{
 				case EventSystem::Type::PopupMessage:
@@ -317,10 +345,15 @@ void renderUI(float DeltaTime)
 					RenderVFX(*static_cast<VFX*>(M.Data));
 				}
 				break;
+				case EventSystem::Type::DialogueMessage:
+				{
+					RenderDialogue(static_cast<DialogueMessage*>(M.Data));
+				}
+				break;
 		
 			}
 			if (M.blocking)
-				continue;
+				break;
 		}
 	}
 
@@ -416,6 +449,7 @@ void InitPlayer()
 	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/otter_mugshot.png");
 	strcpy_s(GameParty[PartyIndex].Name, 128, "Otter");
 
+	QueueDialogueMessage("I think I sense a trap", 5.0f, true);
 }
 
 
@@ -655,10 +689,10 @@ void TickGame(float DeltaTime)
 		{
 			EventSystem::Event& M = EventQueue[i];
 			M.TimeLeft -= DeltaTime;
-			if(M.TimeLeft <= 0.0f)
+			if(M.TimeLeft <= 0.0f && M.processed)
 			{
 				delete M.Data;
-				EventQueue.pop_back();
+				EventQueue.erase(EventQueue.begin() + i);
 				return;
 			}
 			else
