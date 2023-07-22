@@ -2,82 +2,97 @@
 
 #include "types.h"
 #include <utility>
-#include <memory>
-#include <cstring>
 
 template<class T>
 class GrowArray
 {
 public:
-	GrowArray() = default;
 
-	void Preallocate(size_t ElementCount)
+	FORCEINLINE void Preallocate(u32 ElementCount)
 	{
-		ScratchMemory = std::make_unique<T[]>(ElementCount);
+		ScratchMemory = malloc(ElementCount * sizeof(T));
 		m_MaxCount = ElementCount;
 	}
-
-	void AddElement(const T& In)
+	FORCEINLINE void push_back(T& In)
 	{
-		if (m_Count >= m_MaxCount)
+		AddElement(In);
+	}
+	
+	FORCEINLINE void AddElement(T& In)
+	{
+		if(m_MaxCount == 0)
+		{
+			Preallocate(32);
+		}
+		if(m_Count >= m_MaxCount)
 		{
 			m_MaxCount = m_MaxCount == 0 ? 1 : (m_MaxCount << 1);
-			auto NewScratchMemory = std::make_unique<T[]>(m_MaxCount);
-			std::memcpy(NewScratchMemory.get(), ScratchMemory.get(), m_Count * sizeof(T));
+			void* NewScratchMemory = malloc(m_MaxCount * sizeof(T));
+			memcpy(NewScratchMemory, ScratchMemory, m_Count * sizeof(T));
 			ScratchMemory = std::move(NewScratchMemory);
 		}
 
-		ScratchMemory[m_Count++] = In;
+		static_cast<T*>(ScratchMemory)[m_Count++] = In;
 	}
-
-	bool IsEmpty() const
+	FORCEINLINE bool empty()
 	{
 		return m_Count == 0;
 	}
-
-	T& Get(size_t Index)
+	FORCEINLINE T& Get(u32 Index)
 	{
-		return ScratchMemory[Index];
+		return static_cast<T*>(ScratchMemory)[Index];
 	}
 
-	const T& Get(size_t Index) const
+	FORCEINLINE T& operator [](const int & index)
 	{
-		return ScratchMemory[Index];
+		return Get(index);
 	}
 
-	T& Front()
+	FORCEINLINE T& Front()
 	{
-		return ScratchMemory[0];
+		return static_cast<T*>(ScratchMemory)[0];
 	}
 
-	const T& Front() const
+	FORCEINLINE void erase(int index)
 	{
-		return ScratchMemory[0];
-	}
-
-	void Pop()
-	{
-		if (m_Count == 0)
-			return;
-
 		--m_Count;
-		if (m_Count > 0)
-			std::memmove(ScratchMemory.get(), ScratchMemory.get() + 1, m_Count * sizeof(T));
+		if(m_Count == 0)
+		{
+			Deallocate();
+		}
+		else
+		{
+			memcpy((T*)ScratchMemory + index, (T*)(ScratchMemory) + sizeof(T), m_Count - index);
+		}
 	}
 
-	void Deallocate()
+	FORCEINLINE void Pop()
+	{
+		--m_Count;
+		if(m_Count == 0)
+		{
+			Deallocate();
+		}
+		else
+		{
+			memcpy(ScratchMemory, (T*)(ScratchMemory)+sizeof(T), m_Count);
+		}
+	}
+	FORCEINLINE void Deallocate()
 	{
 		m_MaxCount = 0;
-		ScratchMemory.reset();
+		if(ScratchMemory != nullptr)
+			free(ScratchMemory);
+		ScratchMemory = nullptr;
 	}
-
-	size_t Count() const
+	~GrowArray()
 	{
-		return m_Count;
+		Deallocate();
 	}
-
+	FORCEINLINE u32 size() { return m_Count; }
 private:
-	std::unique_ptr<T[]> ScratchMemory = nullptr;
-	size_t m_Count = 0;
-	size_t m_MaxCount = 0;
+	void* ScratchMemory = nullptr;
+	u32 m_Count = 0;
+	u32 m_Front = 0;
+	u32 m_MaxCount = 0;
 };
