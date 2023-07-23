@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gameobject.h"
+#include "enemies.h"
+#include "skills.h"
 
 static const u32 MaxParty = 4;
 
@@ -13,9 +15,12 @@ namespace CharacterClass
 	};
 }
 
+
+//extern GameSkill AvailableSkills[];
+
 struct PartyMember
 {
-	char Name[128];
+	char Name[256];
 	int IdleObject;
 	int AttackObject;
 	int Mugshot;
@@ -30,9 +35,19 @@ struct PartyMember
 	CharacterClass::Type Type = CharacterClass::Warrior;
 };
 
-extern PartyMember GameParty[MaxParty];
+
+
+struct PartyContext
+{
+	int CurrentPartyMember = -1;
+};
+
+extern PartyContext CurrentPartyContext;
+extern PartyMember Party[MaxParty];
 extern i32 EngagedParty[MaxParty];
 extern vector2 PartyLocations[MaxParty];
 extern EntityBundle<PartyMember> PartyBundle;
 extern u8 EngagedPartyCount;
 extern u8 CurrentPartyCount;
+
+void AddPartyMember(const char* MemberName, const char* Mugshot, float Initiative);

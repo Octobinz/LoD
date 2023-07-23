@@ -72,7 +72,7 @@ int LoadTexture(const char* filename)
 	uint8_t* mask; 
 	uint8_t* data; 
 	pd->graphics->getBitmapData(img, &width, &height, &rowbytes, &mask, &data);
-	int index = texture.Count();
+	int index = texture.size();
 	
 	GameTexture G;
 	G.texture = (u8*)malloc(width * height);

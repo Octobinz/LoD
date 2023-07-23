@@ -19,13 +19,11 @@ extern "C"
 #include "growarray.h"
 #include "enemies.h"
 #include "party.h"
+#include "ui.h"
+#include "skills.h"
 
 static int update(void* userdata);
-const char* fontpath = "/System/Fonts/Asheville-Sans-14-Bold.pft";
-const char* fontpathSmall = "Fonts/namco-1x";
 
-LCDFont* font = NULL;
-LCDFont* fontSmall = NULL;
 unsigned int StartupMilliseconds = 0;
 float CurrentDeltaMilliseconds = 0.0f;
 unsigned int LastMilliseconds = 0;
@@ -33,65 +31,6 @@ unsigned int LastMilliseconds = 0;
 #include <stdint.h>
 #include <stdbool.h>
 #include <queue>
-
-namespace EventSystem
-{
-	enum Type
-	{
-		PopupMessage,
-		CombatAnim,
-		DialogueMessage,
-		VFX,
-		SFX
-	};
-
-	struct Event
-	{
-		Type EventType = PopupMessage;
-		bool blocking = false;
-		bool processed = false;
-		float TimeLeft = 0.0f;
-		void* Data = nullptr;
-	};
-}
-
-struct PopupMessage
-{
-	char Message[512];
-};
-
-struct DialogueMessage : public PopupMessage
-{
-	int PartyMember1;
-	int PartyMember2;
-};
-
-struct VFX
-{
-	int texture;
-	int x;
-	int y;
-};
-
-std::vector<EventSystem::Event> EventQueue;
-
-template<class T>
-T& GetEvent(int index)
-{
-	return *static_cast<T*>(EventQueue[index].Data);
-}
-
-template<class T>
-void AddEvent(EventSystem::Type EventType, T* InEvent, float duration, bool blocking)
-{
-	EventSystem::Event E;
-	E.TimeLeft = duration;
-	E.EventType = EventType;
-	E.Data = InEvent;
-	E.blocking = blocking;
-	E.processed = false;
-	EventQueue.push_back(E);
-}
 
 enum CombatTurn
 {
@@ -118,272 +57,59 @@ void RenderFrame()
 	renderSprites();
 }
 
-void QueuePopupMessage(const char* message, float Duration, bool blocking = true)
+struct GameTurn
 {
-	PopupMessage* Message = new PopupMessage();
-	strcpy_s(Message->Message, 512, message);
-	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
-}
+	bool IsPartyMember = false;
+	float Initiative = 0.0f;
+	int index = -1;
+};
 
-void QueueDialogueMessage(const char* message, float Duration, bool blocking = true)
+int CurrentCombatIndex = 0;
+GrowArray<GameTurn> GameTurns;
+
+void GenerateGameTurns()
 {
-	DialogueMessage* Message = new DialogueMessage();
-	strcpy_s(Message->Message, 512, message);
-	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
-}
+	GameTurns.Reset();
 
-
-void QueueVFX(int InTexture, int x, int y, float Duration, bool blocking = false)
-{
-	VFX* Effect = new VFX();
-	Effect->x = x;
-	Effect->y = y;
-	Effect->texture = InTexture;
-	AddEvent(EventSystem::VFX, Effect, Duration, blocking);
-}
-
-void RenderSpellMainMenu()
-{
-	switch(Context.CurrentSpellOption)
-	{
-		case CombatMenu::SpellOption::Fire:
-		{
-			pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("FIRE", strlen("FIRE"), kASCIIEncoding, 80, 185);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-			pd->graphics->drawText("HEAL", strlen("HEAL"), kASCIIEncoding, 80, 215);
-		}
-		break;
-		case CombatMenu::SpellOption::Heal:
-		{
-			pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
-			pd->graphics->drawText("FIRE", strlen("FIRE"), kASCIIEncoding, 80, 185);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("HEAL", strlen("HEAL"), kASCIIEncoding, 80, 215);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-		}
-		break;/*
-		case CombatMenu::AttackOption::Thrust:
-		{
-			pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
-			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
-			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-		}
-		break;*/
-	}
-}
-
-void RenderAttackMainMenu()
-{
-	switch(Context.CurrentAttackOption)
-	{
-		case CombatMenu::AttackOption::Stab:
-		{
-			pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
-			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
-		}
-		break;
-		case CombatMenu::AttackOption::Swing:
-		{
-			pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
-			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
-		}
-		break;
-		case CombatMenu::AttackOption::Thrust:
-		{
-			pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
-			pd->graphics->drawText("STAB", strlen("STAB"), kASCIIEncoding, 80, 185);
-			pd->graphics->drawText("SWING", strlen("SWING"), kASCIIEncoding, 80, 215);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("THRUST", strlen("THRUST"), kASCIIEncoding, 200, 185);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-		}
-		break;
-	}
-}
-
-void RenderCombatMainMenu()
-{
-	switch(Context.CurrentCombatOption)
-	{
-		case CombatMenu::Option::Attack:
-		{
-			pd->graphics->fillRect(77, 183, 110, 20,  kColorBlack);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-			pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
-			pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
-		}
-		break;
-		case CombatMenu::Option::Spell:
-		{
-			pd->graphics->fillRect(77, 213, 110, 20,  kColorBlack);
-			pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-			pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
-		}
-		break;
-		case CombatMenu::Option::Object:
-		{
-			pd->graphics->fillRect(197, 183, 110, 20,  kColorBlack);
-			pd->graphics->drawText("ATTACK", strlen("ATTACK"), kASCIIEncoding, 80, 185);
-			pd->graphics->drawText("SPELL", strlen("SPELL"), kASCIIEncoding, 80, 215);
-			pd->graphics->setDrawMode( kDrawModeInverted );
-			pd->graphics->drawText("ITEMS", strlen("ITEMS"), kASCIIEncoding, 200, 185);
-			pd->graphics->setDrawMode( kDrawModeCopy );
-		}
-		break;
-	}
-}
-
-void RenderCombatUI()
-{
-	switch(Context.CurrentCombatMenu)
-	{
-		case SelectedMenu::Menu::Combat:
-			RenderCombatMainMenu();
-			break;
-		case SelectedMenu::Menu::Attack:
-			RenderAttackMainMenu();
-			break;
-		case SelectedMenu::Menu::Spell:
-			RenderSpellMainMenu();
-			break;
-	}
-}
-
-void RenderParty()
-{
-	float yOffset = 0.0f;
-	int CurrentPartyMember = 3;
-	for (int i = 0; i < /*CurrentPartyCount*/4; i++)
-	{
-		GameTexture& UI64Square = texture.Get(Context._64SquareSprite.texture);
-		float UIScale = 0.8f;
-		if (i == CurrentPartyMember)
-			UIScale = 1.0f;
-		pd->graphics->drawScaledBitmap(UI64Square.img, 0, yOffset, UIScale,UIScale);
-
-		float MugshotScale = 0.35f;
-		if (i == CurrentPartyMember)
-			MugshotScale = 0.45f;
-		GameTexture& Mugshot = texture.Get(GameParty[i].Mugshot);
-		pd->graphics->drawScaledBitmap(Mugshot.img, 3, 4+yOffset, MugshotScale, MugshotScale);
-		
-		if (i == CurrentPartyMember)
-		{
-			pd->graphics->setFont(fontSmall);
-			pd->graphics->setDrawMode(kDrawModeInverted);
-			pd->graphics->drawText(GameParty[i].Name, strlen(GameParty[i].Name), kASCIIEncoding, 8, yOffset + 5);
-			pd->graphics->setDrawMode(kDrawModeCopy);
-			//pd->graphics->setFont(font);
-		}
-		yOffset += 64 * UIScale;
-
-	}
-}
-
-void RenderVFX(VFX& InVFX)
-{
-	GameTexture& Effect = texture.Get(InVFX.texture);
-	pd->graphics->drawBitmap(Effect.img, InVFX.x, InVFX.y, kBitmapUnflipped);
-}
-
-void RenderPopup(PopupMessage* InPopupMessage)
-{
-/*	char Message[512];
-	strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
-*/
-	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
-	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-	pd->graphics->drawText(InPopupMessage->Message, strlen(InPopupMessage->Message), kASCIIEncoding, 80, 10);
-}
-
-void RenderDialogue(DialogueMessage* InDialogueMessage)
-{
-	/*	char Message[512];
-		strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
-	*/
-	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
-	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-	pd->graphics->drawText(InDialogueMessage->Message, strlen(InDialogueMessage->Message), kASCIIEncoding, 80, 10);
-}
-
-void renderUI(float DeltaTime)
-{
-	bool blocked = false;
-	if (false == EventQueue.empty())
-	{
-		for (int i = 0; i < EventQueue.size(); i++)
-		{
-			EventSystem::Event& M = EventQueue[i];
-			M.processed = true;
-			switch (M.EventType)
-			{
-				case EventSystem::Type::PopupMessage:
-				{
-					RenderPopup(static_cast<PopupMessage*>(M.Data));
-				}
-				break;
-				case EventSystem::Type::VFX:
-				{
-					RenderVFX(*static_cast<VFX*>(M.Data));
-				}
-				break;
-				case EventSystem::Type::DialogueMessage:
-				{
-					RenderDialogue(static_cast<DialogueMessage*>(M.Data));
-				}
-				break;
-		
-			}
-			if (M.blocking)
-				break;
-		}
-	}
-
-	if (CurrentGameState == GameState::Combat)
-	{	
-		GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
-		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
-		RenderCombatUI();
-	}
-
-	RenderParty();
-}
-
-
-
-//returns -1 for player, index for enemy
-int GetInitiative()
-{
 	for(u32 i = 0; i < EngagedEnemiesCount; i++)
 	{
 		Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[i]];
+		GameTurn NewGameTurn;
 		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, EngagedEnemies[i]))
 		{
-			if(CurrentEnemy.Initiative > Context.Initiative)
-			{
-				return EngagedEnemies[i];
-			}
+			NewGameTurn.IsPartyMember = false;
+			NewGameTurn.index = EngagedEnemies[i];
+			NewGameTurn.Initiative = CurrentEnemy.Initiative;
+			GameTurns.AddElement(NewGameTurn);
 		} 
 	}
-	return -1;
+
+	for(u32 i = 0; i < CurrentPartyCount; i++)
+	{
+		PartyMember& CurrentPartyMember = Party[i];
+		GameTurn NewGameTurn;
+
+		if (IsIndexValid(PartyBundle, i))
+		{
+			NewGameTurn.IsPartyMember = true;
+			NewGameTurn.index = i;
+			NewGameTurn.Initiative = CurrentPartyMember.Initiative;
+			GameTurns.AddElement(NewGameTurn);
+		} 
+	}
+	
+	//Sort game turns by Initiative
+	for(u32 i = 0; i < GameTurns.size(); i++)
+	{
+		for(u32 j = 0; j < GameTurns.size(); j++)
+		{
+			if(GameTurns[i].Initiative > GameTurns[j].Initiative)
+			{
+				GameTurn NewGameTurn;
+				std::swap(GameTurns[i], GameTurns[j]);
+			}
+		}
+	}
 }
 
 static LCDBitmap *loadImageAtPath(const char *path)
@@ -424,7 +150,6 @@ void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 void InitPlayer()
 {
 	memset(EngagedEnemies, -1, MaxEnemies*sizeof(i32));
-	Context.Radius = 1.1f;
 	CurrentGameState = GameState::Navigation;
 	Context.SwordSprite.texture = LoadTexture("textures/player_sword_1.png");
 	Context.ShieldSprite.texture = LoadTexture("textures/player_shield_1.png");
@@ -433,23 +158,12 @@ void InitPlayer()
 	Context._256RectangleSprite.texture = LoadTexture("textures/ui/256Rectangle.png");
 
 	//Create party
-	u32 PartyIndex = GetNextIndex(PartyBundle);
-	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/warrior_mugshot.png");
-	strcpy_s(GameParty[PartyIndex].Name, 128, "Player");
-
-	PartyIndex = GetNextIndex(PartyBundle);
-	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/monk_mugshot.png");
-	strcpy_s(GameParty[PartyIndex].Name, 128, "Monk");
-
-	PartyIndex = GetNextIndex(PartyBundle);
-	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/witch_mugshot.png");
-	strcpy_s(GameParty[PartyIndex].Name, 128, "Witch");
-
-	PartyIndex = GetNextIndex(PartyBundle);
-	GameParty[PartyIndex].Mugshot = LoadTexture("textures/ui/otter_mugshot.png");
-	strcpy_s(GameParty[PartyIndex].Name, 128, "Otter");
-
-	QueueDialogueMessage("I think I sense a trap", 5.0f, true);
+	AddPartyMember("Player", "textures/ui/warrior_mugshot.png", 1.0f);
+	AddPartyMember("Monk", "textures/ui/monk_mugshot.png", 2.0f);
+	AddPartyMember("Witch", "textures/ui/witch_mugshot.png", 0.5f);
+	AddPartyMember("Otter", "textures/ui/otter_mugshot.png", 7.0f);
+	
+	//QueueDialogueMessage("I think I sense a trap", 5.0f, true);
 }
 
 
@@ -489,22 +203,10 @@ bool ProcessMenuInputs(float DeltaTime, u32& InOutOption, int ElementsCount)
 	return false;
 }
 
-/*
-	//Make enemies that should attack attack
-	//Check for player attack and damage	
-*/
-void UpdateCombat(float DeltaTime)
+//true if attacked
+bool UpdateCombatMenu(float DeltaTime)
 {
 	bool bAttacked = false;
-
-	if(Context.WaitForButtonRelease == true)
-	{
-		if(inputs_down != 0)
-			return;
-		Context.WaitForButtonRelease = false;
-		inputs_released = 0;
-	}
-
 	switch(Context.CurrentCombatMenu)
 	{
 		case SelectedMenu::Menu::Combat:
@@ -540,50 +242,102 @@ void UpdateCombat(float DeltaTime)
 			Context.CurrentSpellOption = (CombatMenu::SpellOption)Option;
 		} break;
 	}
-	
-	for(u32 i = 0; i < EngagedEnemiesCount; i++)
+
+	return bAttacked;
+}
+
+/*
+	//Make enemies that should attack attack
+	//Check for player attack and damage	
+*/
+void UpdateCombat(float DeltaTime)
+{
+
+	if(Context.WaitForButtonRelease == true)
 	{
-		Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[i]];
-		if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, EngagedEnemies[i]))
+		if(inputs_down != 0)
+			return;
+		Context.WaitForButtonRelease = false;
+		inputs_released = 0;
+	}
+
+	GameTurn CurrentGameTurn = GameTurns.Get(CurrentCombatIndex);
+	CurrentTurn = CurrentGameTurn.IsPartyMember ? CombatTurn::Player : CombatTurn::Enemies;
+
+	bool bAttacked = UpdateCombatMenu(DeltaTime);
+	
+	if (CurrentTurn == CombatTurn::Player)
+	{
+		CurrentPartyContext.CurrentPartyMember = CurrentGameTurn.index;
+
+		if (bAttacked)
 		{
-			if (CurrentEnemy.CurrentAttackTimer < 0.0f)
+			int EnemyIndex = 0;
+			Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[EnemyIndex]];
+			if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, EngagedEnemies[EnemyIndex]))
 			{
-				CurrentEnemy.CurrentAttackTimer = CurrentEnemy.AttackTimer;
-				//Attack player
+				GameSkill stab = Stab;
+				stab.PlayerAction(CurrentGameTurn.index, CurrentEnemy);
 			}
-			CurrentEnemy.CurrentAttackTimer -= DeltaTime;
 
-			if (CurrentTurn == CombatTurn::Player)
+			if (CurrentEnemy.HP <= 0)
 			{
-				if (bAttacked)
-				{
-					CurrentEnemy.HP -= 25;
-					QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
-					QueuePopupMessage("25 Damages done!", 1.5f);
-					GameTexture& Slash = texture.Get(Context.SlashSprite.texture);
+				RemoveEnemy(EngagedEnemies[EnemyIndex]);
+				EngagedEnemies[EnemyIndex] = -1;
+				memcpy(&EngagedEnemies[EnemyIndex], &EngagedEnemies[EnemyIndex + 1], (MaxEnemies - EnemyIndex)-1);
+				EngagedEnemiesCount--;
 
-					CurrentTurn = CombatTurn::Enemies;
-					if (CurrentEnemy.HP <= 0)
-					{
-						RemoveEnemy(EngagedEnemies[i]);
-						EngagedEnemies[i] = -1;
-						memcpy(&EngagedEnemies[i], &EngagedEnemies[i + 1], (MaxEnemies - i)-1);
-						EngagedEnemiesCount--;
-						if (EngagedEnemiesCount == 0)
-							CurrentGameState = GameState::Navigation;
-					}
+				//Regenerate game turns as the number of enemies and indices changed
+				GenerateGameTurns();
+
+				if (EngagedEnemiesCount == 0)
+				{
+					CurrentPartyContext.CurrentPartyMember = -1;
+					CurrentGameState = GameState::Navigation;
 				}
 			}
-			else
+			
+			CurrentCombatIndex++;
+			if(CurrentCombatIndex >= GameTurns.size())
 			{
-				char Msg[128];
-				sprintf(Msg, "%s uses it's sword!", GameEnemies[EngagedEnemies[i]].EnemyName);
-				QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
-				QueuePopupMessage(Msg, 2.0f);
-				QueuePopupMessage("15 Damages received!", 1.5f);
-
-				CurrentTurn = CombatTurn::Player;
+				CurrentCombatIndex = 0;
 			}
+		}
+	}
+	else
+	{
+		char Msg[128];
+		sprintf(Msg, "%s uses it's sword!", GameEnemies[CurrentGameTurn.index].EnemyName);
+		QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
+		QueuePopupMessage(Msg, 2.0f);
+		QueuePopupMessage("15 Damages received!", 1.5f);
+
+		CurrentCombatIndex++;
+		if(CurrentCombatIndex > GameTurns.size())
+		{
+			CurrentCombatIndex = 0;
+		}
+	}
+
+}
+
+void AddEnemiesClosestTo(vector2& InLocation, float Radius)
+{
+	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
+	{
+		vector2& CurrentLocation = EnemiesLocations[i];
+		vector2 DistanceVector;
+		vector_sub(DistanceVector, CurrentLocation, InLocation);
+		float DP = vector_dotproduct(DistanceVector, DistanceVector);
+
+		if (DP < (Radius*Radius) && !GameEnemies[i].Engaged && IsIndexValid(EnemiesBundle, i))
+		{
+			GameEnemies[i].Engaged = true;
+			EngagedEnemies[EngagedEnemiesCount] = i;
+			++EngagedEnemiesCount;
+			CurrentGameState = GameState::Combat;
+			Context.WaitForButtonRelease = true;
+			AddEnemiesClosestTo(CurrentLocation, 1.5f);
 		}
 	}
 }
@@ -640,39 +394,34 @@ void UpdateNavigation(float DeltaTime)
 			Context.Position.y = futurey;
 		}
 	}
-	EngagedEnemiesCount = 0;
-	for(u32 i = 0; i < EnemiesBundle.MaxIndex; i++)
-	{
-		vector2& CurrentLocation = EnemiesLocations[i];
-		vector2 DistanceVector;
-		DistanceVector.x = CurrentLocation.x - Context.Position.x;
-		DistanceVector.y = CurrentLocation.y - Context.Position.y;
 
-		float DP = vector_dotproduct(DistanceVector, DistanceVector);
-		if (DP < (Context.Radius*Context.Radius) && !GameEnemies[i].Engaged && IsIndexValid(EnemiesBundle, i))
-		{
-			GameEnemies[i].Engaged = true;
-			EngagedEnemies[EngagedEnemiesCount] = i;
-			++EngagedEnemiesCount;
-			CurrentGameState = GameState::Combat;
-			Context.WaitForButtonRelease = true;
-		}
-	}
+	EngagedEnemiesCount = 0;
+	AddEnemiesClosestTo(Context.Position, Context.Radius);
 
 	if(CurrentGameState == GameState::Combat)
 	{
-		int Initiative = GetInitiative();
-		if(Initiative == -1)
+		GenerateGameTurns();
+		//int Initiative = 0; //GetInitiative();
+		GameTurn CurrentGameTurn = GameTurns.Get(CurrentCombatIndex);
+		if(CurrentGameTurn.IsPartyMember)
 		{
-			QueuePopupMessage("You have the initiative!", 2.0f);
+			if (CurrentCombatIndex == 0)
+			{
+				CurrentPartyContext.CurrentPartyMember = CurrentGameTurn.index;
+				char Msg[128];
+				sprintf(Msg, "%s has the initiative!", Party[CurrentGameTurn.index].Name);
+				QueuePopupMessage(Msg, 2.0f);
+			}
 			CurrentTurn = CombatTurn::Player;
 		}
 		else
 		{
 			CurrentTurn = CombatTurn::Enemies;
 			char Msg[128];
-			sprintf(Msg, "%s has the initiative!", GameEnemies[Initiative].EnemyName);
-			QueuePopupMessage(Msg, 2.0f);
+			sprintf(Msg, "%s has the initiative!", GameEnemies[CurrentGameTurn.index].EnemyName);
+			
+			if(CurrentCombatIndex == 0)
+				QueuePopupMessage(Msg, 2.0f);
 			
 			/*const auto processor_count = std::thread::hardware_concurrency();
 			sprintf(Msg, "%d core count!", processor_count);
@@ -728,14 +477,17 @@ __declspec(dllexport)
 	if (event == kEventInit)
 	{
 		pd = InPD;
+		uint8_t* pd_screen = pd->graphics->getFrame();
+		screen_fb = pd_screen;
+		
+		//Load fonts		
 		const char* err;
 		font = pd->graphics->loadFont(fontpath, &err);
 		fontSmall = pd->graphics->loadFont(fontpathSmall, &err);
-		
+
 		if (font == NULL)
 			pd->system->error("%s:%i Couldn't load font %s: %s", __FILE__, __LINE__, fontpath, err);
 
-		// Note: If you set an update callback in the kEventInit handler, the system assumes the game is pure C and doesn't run any Lua code in the game
 		pd->system->setUpdateCallback(update, pd);
 		pd->display->setRefreshRate(50);
 		pd->display->setScale(1);		
@@ -770,9 +522,6 @@ __declspec(dllexport)
 		AddLight(1.0f, 1.0f, 20.0f);
 		AddLight(8.0f, 8.0f, 2.5f);
 
-		uint8_t* pd_screen = pd->graphics->getFrame();
-		screen_fb = pd_screen;
-
 		Context.Position.x = 5; 
 		Context.Position.y = 5;
 
@@ -798,13 +547,8 @@ static int update(void* userdata)
 	CurrentDeltaMilliseconds = (MS - LastMilliseconds) / 1000.0f;
 	LastMilliseconds = MS;
 
-	pd->graphics->setFont(fontSmall);
-	//pd->graphics->drawText("Hello World!", strlen("Hello World!"), kASCIIEncoding, 0, 0);
 	pd->graphics->markUpdatedRows(0, 240 - 1);
-	pd->graphics->clear(kColorWhite);
-
-	uint8_t* pd_screen = pd->graphics->getFrame();
-
+	//pd->graphics->clear(kColorWhite);
 
 	TickGame(CurrentDeltaMilliseconds);
 	RenderFrame();

@@ -85,6 +85,13 @@ void vertex_mul(vector2& A, float w);
 void vector_add(vector2 *z, const vector2 *x, const vector2 *y);
 void vector_add(vector4 *z, const vector4 *x, const vector4 *y);
 void vector_sub(vector4 *z, const vector4 *x, const vector4 *y);
+
+FORCEINLINE void vector_sub(vector2& z, const vector2& x, const vector2& y) 
+{
+	z.x = x.x - y.x;
+	z.y = x.y - y.y;
+}
+
 FORCEINLINE float vector_dotproduct(const vector2 &x, const vector2 &y)
 {
 	return x.x * y.x + x.y * y.y;

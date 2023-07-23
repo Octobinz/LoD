@@ -85,6 +85,12 @@ public:
 			free(ScratchMemory);
 		ScratchMemory = nullptr;
 	}
+
+	FORCEINLINE void Reset()
+	{
+		m_Count = 0;
+	}
+
 	~GrowArray()
 	{
 		Deallocate();
