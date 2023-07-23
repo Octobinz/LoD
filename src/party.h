@@ -25,13 +25,16 @@ struct PartyMember
 	int AttackObject;
 	int Mugshot;
 	int Locator;
-
-	bool Engaged = false;
+	GameSkill* Skills = nullptr;
 	//Attack timer, hp, endurance etc...
 	float AttackTimer = 1.0f;// In seconds
 	float CurrentAttackTimer = 1.0f;// In seconds
 	float Initiative = 1.0f;
+	
 	int HP = 100;
+	int Level = 1;
+	bool Engaged = false;
+
 	CharacterClass::Type Type = CharacterClass::Warrior;
 };
 

@@ -15,7 +15,7 @@ namespace EnemyType
 
 struct Enemy
 {
-	char EnemyName[128];
+	char Name[128];
 	int IdleObject;
 	int AttackObject;
 	int Locator;

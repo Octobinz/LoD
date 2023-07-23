@@ -25,12 +25,6 @@ namespace CombatMenu
 		Spell,
 		Object
 	};
-	enum AttackOption
-	{
-		Stab,
-		Swing,
-		Thrust
-	};
 	enum SpellOption
 	{
 		Fire,
@@ -80,6 +74,12 @@ struct Sprite
 };
 
 
+struct AttackOption
+{
+	//struct GameSkill* Skill;
+	int index = 0;
+};
+
 struct PlayerContext
 {
 	vector2 Position; 
@@ -93,7 +93,7 @@ struct PlayerContext
 	Sprite SlashSprite;
 
 	CombatMenu::Option CurrentCombatOption = CombatMenu::Option::Attack;
-	CombatMenu::AttackOption CurrentAttackOption = CombatMenu::AttackOption::Stab;
+	AttackOption CurrentAttackOption;
 	CombatMenu::SpellOption CurrentSpellOption = CombatMenu::SpellOption::Fire;
 
 	SelectedMenu::Menu CurrentCombatMenu = SelectedMenu::Menu::Combat;

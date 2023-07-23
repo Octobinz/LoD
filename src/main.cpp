@@ -38,9 +38,8 @@ enum CombatTurn
 	Enemies
 };
 
-
+GrowArray<GameSkill> CurrentGameSkills;
 CombatTurn CurrentTurn = Player;
-u32 CurrentEnemyTurn = 0;
 
 void RenderFrame() 
 {
@@ -56,13 +55,6 @@ void RenderFrame()
 	}
 	renderSprites();
 }
-
-struct GameTurn
-{
-	bool IsPartyMember = false;
-	float Initiative = 0.0f;
-	int index = -1;
-};
 
 int CurrentCombatIndex = 0;
 GrowArray<GameTurn> GameTurns;
@@ -139,7 +131,7 @@ void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 	u32 EnemyIndex = GetNextIndex(EnemiesBundle);
 
 	Enemy& CurrentEnemy = GameEnemies[EnemyIndex];
-	strcpy_s(CurrentEnemy.EnemyName, 128, EnemyName);
+	strcpy_s(CurrentEnemy.Name, 128, EnemyName);
 	CurrentEnemy.IdleObject = IdleObjectIndex;
 	CurrentEnemy.Locator = LocatorIndex;
 	GameObjects[IdleObjectIndex].ObjectSprite = AddSprite("textures/skeleton.png", x, y);
@@ -163,6 +155,7 @@ void InitPlayer()
 	AddPartyMember("Witch", "textures/ui/witch_mugshot.png", 0.5f);
 	AddPartyMember("Otter", "textures/ui/otter_mugshot.png", 7.0f);
 	
+	Party[3].Level++;
 	//QueueDialogueMessage("I think I sense a trap", 5.0f, true);
 }
 
@@ -231,9 +224,25 @@ bool UpdateCombatMenu(float DeltaTime)
 		} break;
 		case SelectedMenu::Menu::Attack:
 		{
-			u32 Option = (u32)Context.CurrentAttackOption;
-			bAttacked = ProcessMenuInputs(DeltaTime, Option, 3);
-			Context.CurrentAttackOption = (CombatMenu::AttackOption)Option;
+			CurrentGameSkills.Reset();
+			GameTurn CurrentGameTurn = GameTurns.Get(CurrentCombatIndex);
+			PartyMember& Member = Party[CurrentGameTurn.index];
+			for (int i = 0; i < Member.Level; i++)
+			{
+				int PotentialSkillCount = sizeof(WarriorLevels[i]) / sizeof(GameSkill);
+				for (int j = 0; j < PotentialSkillCount; j++)
+				{
+					if (nullptr != WarriorLevels[i][j].PlayerAction ||
+						nullptr != WarriorLevels[i][j].EnemyAction)
+					{
+						CurrentGameSkills.push_back(WarriorLevels[i][j]);
+					}
+				}
+			}
+
+			u32 Option = Context.CurrentAttackOption.index;
+			bAttacked = ProcessMenuInputs(DeltaTime, Option, CurrentGameSkills.size());
+			Context.CurrentAttackOption.index = Option;
 		} break;
 		case SelectedMenu::Menu::Spell:
 		{
@@ -276,8 +285,8 @@ void UpdateCombat(float DeltaTime)
 			Enemy& CurrentEnemy = GameEnemies[EngagedEnemies[EnemyIndex]];
 			if (CurrentEnemy.Engaged && IsIndexValid(EnemiesBundle, EngagedEnemies[EnemyIndex]))
 			{
-				GameSkill stab = Stab;
-				stab.PlayerAction(CurrentGameTurn.index, CurrentEnemy);
+				GameSkill Skill = CurrentGameSkills[Context.CurrentAttackOption.index];
+				Skill.PE(CurrentGameTurn.index, CurrentEnemy);
 			}
 
 			if (CurrentEnemy.HP <= 0)
@@ -306,11 +315,8 @@ void UpdateCombat(float DeltaTime)
 	}
 	else
 	{
-		char Msg[128];
-		sprintf(Msg, "%s uses it's sword!", GameEnemies[CurrentGameTurn.index].EnemyName);
-		QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
-		QueuePopupMessage(Msg, 2.0f);
-		QueuePopupMessage("15 Damages received!", 1.5f);
+		GameSkill stab = Stab;
+		stab.EP(GameEnemies[CurrentGameTurn.index], 0);
 
 		CurrentCombatIndex++;
 		if(CurrentCombatIndex > GameTurns.size())
@@ -418,7 +424,7 @@ void UpdateNavigation(float DeltaTime)
 		{
 			CurrentTurn = CombatTurn::Enemies;
 			char Msg[128];
-			sprintf(Msg, "%s has the initiative!", GameEnemies[CurrentGameTurn.index].EnemyName);
+			sprintf(Msg, "%s has the initiative!", GameEnemies[CurrentGameTurn.index].Name);
 			
 			if(CurrentCombatIndex == 0)
 				QueuePopupMessage(Msg, 2.0f);

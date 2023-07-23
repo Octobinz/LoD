@@ -49,6 +49,33 @@ void RenderSpellMainMenu()
 
 void RenderAttackMainMenu()
 {
+	int XOffset = 0;
+	int YOffset = 0;
+	int Index = 0;
+	for (int i = 0; i < Party[GameTurns.Get(CurrentCombatIndex).index].Level; i++)
+	{
+		for (int j = 0; j < sizeof(WarriorLevels[i]) / sizeof(GameSkill); j++)
+		{
+			GameSkill& Skill = WarriorLevels[i][j];
+			if(YOffset >= 60)
+			{
+				YOffset = 0;
+				XOffset += 120;
+			}
+			if(Index == Context.CurrentAttackOption.index)
+			{
+				pd->graphics->fillRect(77 + XOffset, 183 + YOffset, 110, 20,  kColorBlack);
+				pd->graphics->setDrawMode( kDrawModeInverted );
+			}
+
+			pd->graphics->drawText(Skill.Name, strlen(Skill.Name), kASCIIEncoding, 80 + XOffset, 185 + YOffset);			
+			pd->graphics->setDrawMode( kDrawModeCopy );
+
+			YOffset += 30;
+			++Index;
+		}
+	}
+#if 0
 	switch(Context.CurrentAttackOption)
 	{
 		case CombatMenu::AttackOption::Stab:
@@ -82,6 +109,7 @@ void RenderAttackMainMenu()
 		}
 		break;
 	}
+#endif
 }
 
 void RenderCombatMainMenu()
@@ -179,8 +207,8 @@ void RenderPopup(PopupMessage* InPopupMessage)
 	strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
 	*/
 	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
-	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
-	pd->graphics->drawText(InPopupMessage->Message, strlen(InPopupMessage->Message), kASCIIEncoding, 80, 10);
+	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
+	pd->graphics->drawText(InPopupMessage->Message, strlen(InPopupMessage->Message), kASCIIEncoding, 80, 185);
 }
 
 void RenderDialogue(DialogueMessage* InDialogueMessage)
@@ -189,13 +217,14 @@ void RenderDialogue(DialogueMessage* InDialogueMessage)
 	strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
 	*/
 	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
-	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 0, kBitmapUnflipped);
+	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
 	pd->graphics->drawText(InDialogueMessage->Message, strlen(InDialogueMessage->Message), kASCIIEncoding, 80, 10);
 }
 
 void renderUI(float DeltaTime)
 {
 	bool blocked = false;
+	bool bShouldRenderCombatUI = true;
 	if (false == EventQueue.empty())
 	{
 		for (int i = 0; i < EventQueue.size(); i++)
@@ -206,6 +235,7 @@ void renderUI(float DeltaTime)
 			{
 				case EventSystem::Type::PopupMessage:
 				{
+					bShouldRenderCombatUI = false;
 					RenderPopup(static_cast<PopupMessage*>(M.Data));
 				}
 				break;
@@ -216,6 +246,7 @@ void renderUI(float DeltaTime)
 				break;
 				case EventSystem::Type::DialogueMessage:
 				{
+					bShouldRenderCombatUI = false;
 					RenderDialogue(static_cast<DialogueMessage*>(M.Data));
 				}
 				break;
@@ -226,7 +257,8 @@ void renderUI(float DeltaTime)
 		}
 	}
 
-	if (CurrentGameState == GameState::Combat)
+	if (CurrentGameState == GameState::Combat &&
+		bShouldRenderCombatUI)
 	{	
 		GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
 		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
