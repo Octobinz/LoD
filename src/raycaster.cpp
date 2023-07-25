@@ -51,6 +51,8 @@ int AddSprite(const char* filename, float x, float y)
 	CurrentSprite.texture = LoadTexture(filename);
 	CurrentSprite.x = x;
 	CurrentSprite.y = y;
+	CurrentSprite.originalx = x;
+	CurrentSprite.originaly = y;
 	return Index;
 }
 
@@ -124,9 +126,13 @@ void SortSprites(int (&SpriteOrder)[MaxSprites])
 
 float GetLightAttenuation(vector3& InPosition, Light& InLight)
 {
-	const vector3 v = vector3(InPosition.x - InLight.location.x, InPosition.y - InLight.location.y, InPosition.z - InLight.location.z);
-	float Distance = (vector_length(v) + 0.1f);
-	float ratio =  std::max(1.0f - (Distance / InLight.radius), 0.0f);
+	const vector3 v = vector3(InPosition.x - InLight.location.x, InPosition.y - InLight.location.y, 0);
+	float Distance = vector_length(v);
+	float factor = (Distance/InLight.radius)+1;
+	factor = 1.0f / (factor * factor);
+	float ratio =  std::max(factor, 0.0f);
+	if(Distance > InLight.radius)
+		return 0.0f;
 	return ratio;
 }
 
@@ -219,8 +225,8 @@ void renderFloor()
 
 			// choose texture and draw the pixel
 			int checkerBoardPattern = (int(cellX + cellY)) & 1;
-			int floorTexture = 11;
-			int ceilingTexture = 6;
+			int floorTexture = 1;//11;
+			int ceilingTexture = 1;//6;
 			GameTexture& Tex = texture.Get(floorTexture);
 			// get the texture coordinate from the fractional part
 			int tx = (int)(Tex.width * (floorX - cellX)) & (Tex.width - 1);
@@ -247,8 +253,10 @@ void renderFloor()
 				int index = (y * SCREEN_WIDTH) + x;
 				int byteIndex = index / 8;
 				int bitOffset = index % 8;
-				bool Penumbra = false; //(LightAttenuation < 0.2f && (tx % 2 && ty % 2));
-				bool bBlack = (color == 0) || (LightAttenuation < 0.01f) || Penumbra;
+
+				int modulofactor = int((1.0f - LightAttenuation) * 5.0f) + 1;
+				//bool Penumbra = (tx % modulofactor && ty % modulofactor);
+				bool bBlack = (color == 0);// || Penumbra || (LightAttenuation < 0.2f);
 
 				if (bBlack)
 				{
@@ -268,9 +276,9 @@ void renderFloor()
 				int index = (y * SCREEN_WIDTH) + x;
 				int byteIndex = index / 8;
 				int bitOffset = index % 8;
-				int LightModulo = (1.0f - LightAttenuation) < 0.1f ? 1 : (int)((1.0f - LightAttenuation)*5.0f);
-				bool Penumbra = false; //(LightAttenuation < 0.9f && (tx % LightModulo && ty % LightModulo));
-				bool bBlack = (color == 0) || LightAttenuation < 0.01f || Penumbra;
+				int modulofactor = int((1.0f - LightAttenuation) * 5.0f) + 1;
+				//bool Penumbra = (tx % modulofactor && ty % modulofactor);
+				bool bBlack = (color == 0);// || Penumbra || (LightAttenuation < 0.2f);
 
 				if (bBlack)
 				{
@@ -450,7 +458,9 @@ void renderWalls()
 			for(u32 i = 0; i < LightsBundle.MaxIndex; i++)
 				LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
 
-			bool bBlack = (color == 0) || (LightAttenuation < 0.01f);
+			int modulofactor = int((1.0f - LightAttenuation) * 5.0f)+1;
+			//bool Penumbra = (texX % modulofactor && texY % modulofactor);
+			bool bBlack = (color == 0);// || Penumbra || (LightAttenuation < 0.2f);
 
 			if (bBlack)
 			{
@@ -473,17 +483,18 @@ void RenderCombatBG()
 	pd->graphics->setDrawMode( kDrawModeCopy );
 }
 
-void renderSprites()
+void renderSprites(float DeltaTime)
 {
 	//SPRITE CASTING
 	//sort sprites from far to close
 #if 1
 	SortSprites(SpriteOrder);
 #endif
-	//after sorting the sprites, do the projection and draw them
 	for (u32 i = 0; i < SpritesBundle.MaxIndex; i++)
 	{
 		Sprite& CurrentSprite = Sprites[SpriteOrder[i]];
+		shakeSprite(&CurrentSprite, 5, DeltaTime);
+
 		if(IsIndexValid(SpritesBundle, SpriteOrder[i]))
 		{
 			//translate sprite position to relative to camera

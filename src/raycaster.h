@@ -17,7 +17,7 @@ extern Light Lights[MaxLights];
 extern EntityBundle<Sprite> SpritesBundle;
 
 void renderFloor();
-void renderSprites();
+void renderSprites(float DeltaTime);
 void renderWalls();
 void RenderCombatBG();
 int LoadTexture(const char* filename);

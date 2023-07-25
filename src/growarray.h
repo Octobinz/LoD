@@ -11,6 +11,11 @@ public:
 	FORCEINLINE void Preallocate(u32 ElementCount)
 	{
 		ScratchMemory = malloc(ElementCount * sizeof(T));
+		for(u32 i = 0; i < ElementCount; i++)
+		{
+			new((T*)(ScratchMemory) + i) T();
+		}
+		m_Count = ElementCount;
 		m_MaxCount = ElementCount;
 	}
 	FORCEINLINE void push_back(T& In)
@@ -20,10 +25,6 @@ public:
 	
 	FORCEINLINE void AddElement(T& In)
 	{
-		if(m_MaxCount == 0)
-		{
-			Preallocate(32);
-		}
 		if(m_Count >= m_MaxCount)
 		{
 			m_MaxCount = m_MaxCount == 0 ? 1 : (m_MaxCount << 1);
@@ -62,7 +63,7 @@ public:
 		}
 		else
 		{
-			memcpy((T*)ScratchMemory + index, (T*)(ScratchMemory) + sizeof(T), m_Count - index);
+			memcpy((T*)ScratchMemory + index, (T*)(ScratchMemory) + 1, (m_Count - index ) * sizeof(T));
 		}
 	}
 
@@ -75,7 +76,7 @@ public:
 		}
 		else
 		{
-			memcpy(ScratchMemory, (T*)(ScratchMemory)+sizeof(T), m_Count);
+			memcpy(ScratchMemory, (T*)(ScratchMemory) + 1, m_Count * sizeof(T));
 		}
 	}
 	FORCEINLINE void Deallocate()

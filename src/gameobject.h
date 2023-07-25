@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "types.h"
 #include "entity.h"
+#include <time.h>
 
 extern "C"
 {
@@ -48,6 +49,8 @@ struct GameObject;
 static const u32 MaxGameObjects = 256;
 
 extern PlaydateAPI* pd;
+extern FilePlayer* musicplayer;
+extern FilePlayer* sfxplayer;
 
 struct Light
 {
@@ -69,10 +72,20 @@ struct Sprite
 {
 	float x;
 	float y;
+	float originalx;
+	float originaly;
 	float scale = 1.0f;
 	int texture = -1;
+	float shakeRemainingTime; // Variable to store the starting time of shaking
+	int shakeAmount;      // Duration of the shake in seconds
 };
 
+
+// Function to generate a random number within a given range
+int randomInRange(int min, int max);
+// Function to shake the sprite for a given duration
+void shakeSprite(struct Sprite *sprite, float shakeAmount, float deltaTime); 
+void initSpriteShake(struct Sprite *sprite, float shakeDuration, int InShakeAmount);
 
 struct AttackOption
 {
@@ -91,6 +104,7 @@ struct PlayerContext
 	Sprite _64SquareSprite;
 	Sprite _256RectangleSprite;
 	Sprite SlashSprite;
+	Sprite MainTitleSprite;
 
 	CombatMenu::Option CurrentCombatOption = CombatMenu::Option::Attack;
 	AttackOption CurrentAttackOption;
@@ -118,9 +132,6 @@ struct GameObject
 
 extern GameObject GameObjects[MaxGameObjects];
 extern vector2 ObjectsLocations[MaxGameObjects];
-//extern Enemy EngagedEnemies[MaxEnemies];
-extern u8 EngagedEnemiesCount;
-extern u8 CurrentEnemiesCount;
 extern u8 CurrentGameObjectCount;
 extern u8 CurrentEnemyLocatorCount;
 extern EntityBundle<GameObject> GameObjectsBundle;

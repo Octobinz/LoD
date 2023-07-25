@@ -3,8 +3,10 @@
 #include "skills.h"
 #include "ui.h"
 #include "party.h"
+#include "raycaster.h"
+#include "combat.h"
 
-void GameSkill::PE(int PlayerIndex, Enemy& InEnemy)
+void GameSkill::PE(int PlayerIndex, int InEnemy)
 {
 	char Msg[128];
 	sprintf(Msg, "%s uses %s!", Party[PlayerIndex].Name, this->Name);
@@ -13,41 +15,41 @@ void GameSkill::PE(int PlayerIndex, Enemy& InEnemy)
 	PlayerAction(PlayerIndex, InEnemy);
 }
 
-void GameSkill::EP(Enemy& InEnemy, int PlayerIndex)
+void GameSkill::EP(int InEnemy, int PlayerIndex)
 {
 	char Msg[128];
-	sprintf(Msg, "%s uses %s!", InEnemy.Name, this->Name);
+	sprintf(Msg, "%s uses %s!", GameEnemies[InEnemy].Name, this->Name);
 	QueuePopupMessage(Msg, 1.5f);
 	EnemyAction(InEnemy, PlayerIndex);
 }
 
-void skill_stab_PE(int PlayerIndex, Enemy& InEnemy)
+void skill_stab_PE(int PlayerIndex, int Enemy)
 {
-	QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	QueueEnemyDamage(Enemy, 25);
 	QueuePopupMessage("25 Damages done!", 1.5f);
-	InEnemy.HP -= 25;
 }
 
-void skill_stab_EP(Enemy& InEnemy, int PlayerIndex)
+void skill_stab_EP(int InEnemy, int PlayerIndex)
 {
-	QueueVFX(Context.SlashSprite.texture, 80, -50, 2.0f, false);
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	QueuePlayerDamage(&Party[PlayerIndex], 25);
 	QueuePopupMessage("25 Damages done!", 1.5f);
-	Party[PlayerIndex].HP -= 25;
 }
 
-void skill_swing_PE(int PlayerIndex, Enemy& InEnemy)
+void skill_swing_PE(int PlayerIndex, int InEnemy)
 {
 }
 
-void skill_swing_EP(Enemy& InEnemy, int PlayerIndex)
+void skill_swing_EP(int InEnemy, int PlayerIndex)
 {
 }
 
-void skill_thrust_PE(int PlayerIndex, Enemy& InEnemy)
+void skill_thrust_PE(int PlayerIndex, int InEnemy)
 {
 }
 
-void skill_thrust_EP(Enemy& InEnemy, int PlayerIndex)
+void skill_thrust_EP(int InEnemy, int PlayerIndex)
 {
 }
 
@@ -61,5 +63,8 @@ GameSkill WarriorLevels[][3] = { { Stab, Swing, Thrust },
 								{ Rage },
 								{ Provoke },
 };
+
+
+GrowArray<GameSkill> CurrentGameSkills;
 
 

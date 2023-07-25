@@ -16,6 +16,9 @@ namespace EventSystem
 		CombatAnim,
 		DialogueMessage,
 		VFX,
+		PlayerHurt,
+		EnemyHurt,
+		KillEnemy,
 		SFX
 	};
 
@@ -86,3 +89,5 @@ void renderUI(float DeltaTime);
 void QueuePopupMessage(const char* message, float Duration, bool blocking = true);
 void QueueDialogueMessage(const char* message, float Duration, bool blocking = true);
 void QueueVFX(int InTexture, int x, int y, float Duration, bool blocking = false);
+
+bool ProcessMenuInputs(float DeltaTime, u32& InOutOption, int ElementsCount);

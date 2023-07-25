@@ -2,6 +2,8 @@
 #include "gameobject.h"
 #include "party.h"
 #include "raycaster.h"
+#include "inputs.h"
+#include "game.h"
 
 const char* fontpath = "/System/Fonts/Asheville-Sans-14-Bold.pft";
 const char* fontpathSmall = "Fonts/namco-1x";
@@ -52,27 +54,33 @@ void RenderAttackMainMenu()
 	int XOffset = 0;
 	int YOffset = 0;
 	int Index = 0;
-	for (int i = 0; i < Party[GameTurns.Get(CurrentCombatIndex).index].Level; i++)
+
+	GameTurn& G = GameTurns.Get(CurrentCombatIndex);
+	int PartyMemberIndex = G.index;
+	if (G.IsPartyMember)
 	{
-		for (int j = 0; j < sizeof(WarriorLevels[i]) / sizeof(GameSkill); j++)
+		for (int i = 0; i < Party[PartyMemberIndex].Level; i++)
 		{
-			GameSkill& Skill = WarriorLevels[i][j];
-			if(YOffset >= 60)
+			for (int j = 0; j < sizeof(WarriorLevels[i]) / sizeof(GameSkill); j++)
 			{
-				YOffset = 0;
-				XOffset += 120;
+				GameSkill& Skill = WarriorLevels[i][j];
+				if (YOffset >= 60)
+				{
+					YOffset = 0;
+					XOffset += 120;
+				}
+				if (Index == Context.CurrentAttackOption.index)
+				{
+					pd->graphics->fillRect(77 + XOffset, 183 + YOffset, 110, 20,  kColorBlack);
+					pd->graphics->setDrawMode(kDrawModeInverted);
+				}
+	
+				pd->graphics->drawText(Skill.Name, strlen(Skill.Name), kASCIIEncoding, 80 + XOffset, 185 + YOffset);
+				pd->graphics->setDrawMode(kDrawModeCopy);
+	
+				YOffset += 30;
+				++Index;
 			}
-			if(Index == Context.CurrentAttackOption.index)
-			{
-				pd->graphics->fillRect(77 + XOffset, 183 + YOffset, 110, 20,  kColorBlack);
-				pd->graphics->setDrawMode( kDrawModeInverted );
-			}
-
-			pd->graphics->drawText(Skill.Name, strlen(Skill.Name), kASCIIEncoding, 80 + XOffset, 185 + YOffset);			
-			pd->graphics->setDrawMode( kDrawModeCopy );
-
-			YOffset += 30;
-			++Index;
 		}
 	}
 #if 0
@@ -221,7 +229,7 @@ void RenderDialogue(DialogueMessage* InDialogueMessage)
 	pd->graphics->drawText(InDialogueMessage->Message, strlen(InDialogueMessage->Message), kASCIIEncoding, 80, 10);
 }
 
-void renderUI(float DeltaTime)
+void RenderGameUI(float DeltaTime)
 {
 	bool blocked = false;
 	bool bShouldRenderCombatUI = true;
@@ -241,6 +249,7 @@ void renderUI(float DeltaTime)
 				break;
 				case EventSystem::Type::VFX:
 				{
+					bShouldRenderCombatUI = false;
 					RenderVFX(*static_cast<VFX*>(M.Data));
 				}
 				break;
@@ -268,6 +277,27 @@ void renderUI(float DeltaTime)
 	RenderParty();
 }
 
+void RenderMainMenuUI(float DeltaTime)
+{
+	GameTexture& MainTitleSprite = texture.Get(Context.MainTitleSprite.texture);
+	pd->graphics->drawBitmap(MainTitleSprite.img, 0, 0, kBitmapUnflipped);
+}
+
+void renderUI(float DeltaTime)
+{
+	switch(CurrentGameMode)
+	{
+		case GameMode::InGame:
+		{
+			RenderGameUI(DeltaTime);
+		}
+		break;
+		case GameMode::MainMenu:
+			RenderMainMenuUI(DeltaTime);
+			break;
+	}
+}
+
 void QueuePopupMessage(const char* message, float Duration, bool blocking)
 {
 	PopupMessage* Message = new PopupMessage();
@@ -290,4 +320,40 @@ void QueueVFX(int InTexture, int x, int y, float Duration, bool blocking )
 	Effect->y = y;
 	Effect->texture = InTexture;
 	AddEvent(EventSystem::VFX, Effect, Duration, blocking);
+}
+
+
+bool ProcessMenuInputs(float DeltaTime, u32& InOutOption, int ElementsCount)
+{
+	u32 CurrentSelection = (u32)InOutOption;
+	if (IsKeyReleased(InputKeys::Right))
+	{
+		CurrentSelection += 2;
+	}
+	if (IsKeyReleased(InputKeys::Left))
+	{
+		CurrentSelection -= 2;
+	}
+	if (IsKeyReleased(InputKeys::Up))
+	{
+		CurrentSelection--;
+	}
+	if (IsKeyReleased(InputKeys::Down))
+	{
+		CurrentSelection++;
+	}
+
+
+	InOutOption = std::max<u32>(std::min<u32>(CurrentSelection, ElementsCount-1), 0);
+
+	if (IsKeyReleased(InputKeys::Action)) 
+	{
+		return true;
+	}
+	if (IsKeyReleased(InputKeys::Action2)) 
+	{
+		Context.CurrentCombatMenu = SelectedMenu::Menu::Combat;
+		//Context.CurrentCombatMenu = SelectedMenu::Menu::Attack;
+	}
+	return false;
 }

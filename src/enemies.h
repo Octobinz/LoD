@@ -1,8 +1,9 @@
 #pragma once
 
 #include "gameobject.h"
+#include "growarray.h"
 
-static const u32 MaxEnemies = 256;
+static const u32 MaxEnemies = 32;
 
 namespace EnemyType
 {
@@ -19,7 +20,6 @@ struct Enemy
 	int IdleObject;
 	int AttackObject;
 	int Locator;
-
 	bool Engaged = false;
 	//Attack timer, hp, endurance etc...
 	float AttackTimer = 1.0f;// In seconds
@@ -29,9 +29,11 @@ struct Enemy
 	EnemyType::Type Type = EnemyType::Skeleton;
 };
 
-extern Enemy GameEnemies[MaxEnemies];
-extern i32 EngagedEnemies[MaxEnemies];
-extern vector2 EnemiesLocations[MaxGameObjects];
+extern GrowArray<Enemy> GameEnemies;
+extern GrowArray<u32> EngagedEnemies;
+extern GrowArray<vector2> EnemiesLocations;
 extern EntityBundle<Enemy> EnemiesBundle;
-extern u8 EngagedEnemiesCount;
-extern u8 CurrentEnemiesCount;
+
+void AddEnemiesClosestTo(vector2& InLocation, float Radius);
+void RemoveEnemy(u32 index);
+void AddEnemy(const char* EnemyName, float Initiative, float x, float y);
