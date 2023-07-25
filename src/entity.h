@@ -38,20 +38,19 @@ void InitEntitiesBundle(EntityBundle<T>& InBundle);
 template<class T>
 FORCEINLINE bool IsIndexValid(EntityBundle<T>& InBundle, u32 InIndex)
 {
-	u64& Mask = InBundle.FreeListMask[InIndex >> 6];
+	const u64& Mask = InBundle.FreeListMask[InIndex >> 6];
 	return (Mask & (u64(1) << InIndex));
 }
 
 template<class T>
 FORCEINLINE u32 GetNextIndex(EntityBundle<T>& InBundle)
 {
-	u32 index = 0;
 	for(int i = 0; i < MaskCount; i++)
 	{
 		u64& Mask = InBundle.FreeListMask[i];
 		if (Mask != ~0)
 		{
-			index = getIndexOfFirstZeroBit(Mask);
+			u32 index = getIndexOfFirstZeroBit(Mask);
 			Mask |= u64(1) << index;
 			++InBundle.MaxIndex;
 			return index * (i + 1);

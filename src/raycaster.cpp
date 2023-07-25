@@ -324,7 +324,7 @@ void renderWalls()
 		int stepY;
 	
 		int hit = 0; //was there a wall hit?
-		int side; //was a NS or a EW wall hit?
+		int side = 0; //was a NS or a EW wall hit?
 	
 		//calculate step and initial sideDist
 		if (RayDirection.x < 0)
