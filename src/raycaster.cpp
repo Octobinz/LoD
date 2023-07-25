@@ -225,8 +225,8 @@ void renderFloor()
 
 			// choose texture and draw the pixel
 			int checkerBoardPattern = (int(cellX + cellY)) & 1;
-			int floorTexture = 1;//11;
-			int ceilingTexture = 1;//6;
+			int floorTexture = 0;//11;
+			int ceilingTexture = 0;//6;
 			GameTexture& Tex = texture.Get(floorTexture);
 			// get the texture coordinate from the fractional part
 			int tx = (int)(Tex.width * (floorX - cellX)) & (Tex.width - 1);

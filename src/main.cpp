@@ -127,7 +127,7 @@ __declspec(dllexport)
 		pd->display->setRefreshRate(50);
 		pd->display->setScale(1);		
 
-		LoadTexture( "textures/eagle.png");
+		LoadTexture( "textures/stonefloor.png");
 		LoadTexture( "textures/blank_rectangle.png");
 		LoadTexture( "textures/purplestone.png");
 		LoadTexture( "textures/greystone.png");
@@ -157,8 +157,8 @@ __declspec(dllexport)
 		AddLight(1.0f, 1.0f, 20.0f);
 		AddLight(8.0f, 8.0f, 2.5f);
 
-		Context.Position.x = 5; 
-		Context.Position.y = 5;
+		Context.Position.x = 5.5; 
+		Context.Position.y = 5.5;
 
 		vector2 v = {-1.0f, 0.1f};
 		vector_normalize(v);
