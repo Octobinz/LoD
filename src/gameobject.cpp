@@ -20,7 +20,7 @@ int randomInRange(int min, int max)
 }
 
 // Function to initialize the sprite shake
-void initSpriteShake(struct Sprite *sprite, float shakeDuration, int InShakeAmount) 
+void InitSpriteShake(struct Sprite *sprite, float shakeDuration, int InShakeAmount) 
 {
 	sprite->originalx = sprite->x;
 	sprite->originaly = sprite->y;

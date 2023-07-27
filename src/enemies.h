@@ -2,6 +2,7 @@
 
 #include "gameobject.h"
 #include "growarray.h"
+#include "skills.h"
 
 static const u32 MaxEnemies = 32;
 
@@ -26,6 +27,8 @@ struct Enemy
 	float CurrentAttackTimer = 1.0f;// In seconds
 	float Initiative = 1.0f;
 	int HP = 100;
+	int PlayerTarger = 0;
+	GrowArray<GameSkill> Skills;
 	EnemyType::Type Type = EnemyType::Skeleton;
 };
 

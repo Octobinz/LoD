@@ -4,6 +4,7 @@
 #include "raycaster.h"
 #include "inputs.h"
 #include "game.h"
+#include "combat.h"
 
 const char* fontpath = "/System/Fonts/Asheville-Sans-14-Bold.pft";
 const char* fontpathSmall = "Fonts/namco-1x";
@@ -59,28 +60,25 @@ void RenderAttackMainMenu()
 	int PartyMemberIndex = G.index;
 	if (G.IsPartyMember)
 	{
-		for (int i = 0; i < Party[PartyMemberIndex].Level; i++)
+		for (int i = 0; i < Party[PartyMemberIndex].Skills.size(); i++)
 		{
-			for (int j = 0; j < sizeof(WarriorLevels[i]) / sizeof(GameSkill); j++)
+			GameSkill& Skill = Party[PartyMemberIndex].Skills[i];
+			if (YOffset >= 60)
 			{
-				GameSkill& Skill = WarriorLevels[i][j];
-				if (YOffset >= 60)
-				{
-					YOffset = 0;
-					XOffset += 120;
-				}
-				if (Index == Context.CurrentAttackOption.index)
-				{
-					pd->graphics->fillRect(77 + XOffset, 183 + YOffset, 110, 20,  kColorBlack);
-					pd->graphics->setDrawMode(kDrawModeInverted);
-				}
-	
-				pd->graphics->drawText(Skill.Name, strlen(Skill.Name), kASCIIEncoding, 80 + XOffset, 185 + YOffset);
-				pd->graphics->setDrawMode(kDrawModeCopy);
-	
-				YOffset += 30;
-				++Index;
+				YOffset = 0;
+				XOffset += 120;
 			}
+			if (Index == Context.CurrentAttackOption.index)
+			{
+				pd->graphics->fillRect(77 + XOffset, 183 + YOffset, 110, 20,  kColorBlack);
+				pd->graphics->setDrawMode(kDrawModeInverted);
+			}
+
+			pd->graphics->drawText(Skill.Name, strlen(Skill.Name), kASCIIEncoding, 80 + XOffset, 185 + YOffset);
+			pd->graphics->setDrawMode(kDrawModeCopy);
+
+			YOffset += 30;
+			++Index;
 		}
 	}
 #if 0
@@ -176,7 +174,7 @@ void RenderCombatUI()
 void RenderParty()
 {
 	float yOffset = 0.0f;
-	for (int i = 0; i < CurrentPartyCount; i++)
+	for (int i = 0; i < Party.size(); i++)
 	{
 		GameTexture& UI64Square = texture.Get(Context._64SquareSprite.texture);
 		float UIScale = 0.8f;

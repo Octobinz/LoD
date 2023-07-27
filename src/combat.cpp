@@ -62,20 +62,13 @@ bool UpdateCombatMenu(float DeltaTime)
 		{
 			CurrentGameSkills.Reset();
 			GameTurn CurrentGameTurn = GameTurns.Get(CurrentCombatIndex);
+			
 			if (CurrentGameTurn.IsPartyMember)
 			{
 				PartyMember& Member = Party[CurrentGameTurn.index];
-				for (int i = 0; i < Member.Level; i++)
+				for (int i = 0; i < Member.Skills.size(); i++)
 				{
-					int PotentialSkillCount = sizeof(WarriorLevels[i]) / sizeof(GameSkill);
-					for (int j = 0; j < PotentialSkillCount; j++)
-					{
-						if (nullptr != WarriorLevels[i][j].PlayerAction ||
-							nullptr != WarriorLevels[i][j].EnemyAction)
-						{
-							CurrentGameSkills.push_back(WarriorLevels[i][j]);
-						}
-					}
+					CurrentGameSkills.push_back(Member.Skills[i]);
 				}
 
 				u32 Option = Context.CurrentAttackOption.index;
@@ -115,18 +108,15 @@ void GenerateGameTurns()
 		} 
 	}
 
-	for(u32 i = 0; i < CurrentPartyCount; i++)
+	for(u32 i = 0; i < Party.size(); i++)
 	{
 		PartyMember& CurrentPartyMember = Party[i];
 		GameTurn NewGameTurn;
 
-		if (IsIndexValid(PartyBundle, i))
-		{
-			NewGameTurn.IsPartyMember = true;
-			NewGameTurn.index = i;
-			NewGameTurn.Initiative = CurrentPartyMember.Initiative;
-			GameTurns.AddElement(NewGameTurn);
-		} 
+		NewGameTurn.IsPartyMember = true;
+		NewGameTurn.index = i;
+		NewGameTurn.Initiative = CurrentPartyMember.Initiative;
+		GameTurns.AddElement(NewGameTurn);
 	}
 	
 	//Sort game turns by Initiative
@@ -186,8 +176,11 @@ void UpdateCombat(float DeltaTime)
 	}
 	else
 	{
-		GameSkill stab = Stab;
-		stab.EP(CurrentGameTurn.index, 0);
+		Enemy& CurrentEnemy = GameEnemies[CurrentGameTurn.index];
+		int skillIndex = randomInRange(0, CurrentEnemy.Skills.size()-1);
+		int playerIndex = randomInRange(0, Party.size()-1);
+		GameSkill& skill = CurrentEnemy.Skills[skillIndex];
+		skill.EP(CurrentGameTurn.index, skillIndex);
 
 		CurrentCombatIndex++;
 		if(CurrentCombatIndex > GameTurns.size())

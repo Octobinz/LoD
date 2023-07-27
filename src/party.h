@@ -4,13 +4,13 @@
 #include "enemies.h"
 #include "skills.h"
 
-static const u32 MaxParty = 4;
-
 namespace CharacterClass
 {
 	enum Type
 	{
 		Warrior,
+		Witch,
+		Priest,
 		Max
 	};
 }
@@ -25,7 +25,7 @@ struct PartyMember
 	int AttackObject;
 	int Mugshot;
 	int Locator;
-	GameSkill* Skills = nullptr;
+	GrowArray<GameSkill> Skills;
 	//Attack timer, hp, endurance etc...
 	float AttackTimer = 1.0f;// In seconds
 	float CurrentAttackTimer = 1.0f;// In seconds
@@ -35,7 +35,7 @@ struct PartyMember
 	int Level = 1;
 	bool Engaged = false;
 
-	CharacterClass::Type Type = CharacterClass::Warrior;
+	CharacterClass::Type Class = CharacterClass::Warrior;
 };
 
 
@@ -46,11 +46,11 @@ struct PartyContext
 };
 
 extern PartyContext CurrentPartyContext;
-extern PartyMember Party[MaxParty];
-extern i32 EngagedParty[MaxParty];
-extern vector2 PartyLocations[MaxParty];
-extern EntityBundle<PartyMember> PartyBundle;
+extern GrowArray<PartyMember> Party;
+extern GrowArray<i32> EngagedParty;
+extern GrowArray<vector2> PartyLocations;
 extern u8 EngagedPartyCount;
-extern u8 CurrentPartyCount;
 
-void AddPartyMember(const char* MemberName, const char* Mugshot, float Initiative);
+void AddPartyMember(const char* MemberName, CharacterClass::Type InClass, const char* Mugshot, float Initiative, int InLevel);
+void SetPartyMemberClass(CharacterClass::Type InClass);
+void SetPartyMemberLevel(int Index, int Level);

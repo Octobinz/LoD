@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gameobject.h"
-#include "enemies.h"
 #include "growarray.h"
 
 typedef void(*PlayerActionFunction)(int, int);
@@ -35,9 +34,8 @@ void skill_thrust_EP(int InEnemy, int PlayerIndex);
 void skill_swing_PE(int PlayerIndex, int InEnemy);
 void skill_swing_EP(int InEnemy, int PlayerIndex);
 
-extern GameSkill Stab;
-extern GameSkill Swing;
-extern GameSkill Thrust;
 extern GameSkill WarriorLevels[][3];
+extern GameSkill WitchLevels[][3];
+extern GameSkill MeleeEnemyLevels[][3];
 
 extern GrowArray<GameSkill> CurrentGameSkills;

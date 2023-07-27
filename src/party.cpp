@@ -2,19 +2,64 @@
 
 #include "party.h"
 #include "raycaster.h"
+#include "growarray.h"
 
-PartyMember Party[MaxParty];
-EntityBundle<PartyMember> PartyBundle;
-vector2 PartyLocations[MaxParty];
+GrowArray<PartyMember> Party;
+GrowArray<vector2> PartyLocations;
 u8 EngagedPartyCount = 0;
-u8 CurrentPartyCount = 0;
 PartyContext CurrentPartyContext;
 
-void AddPartyMember(const char* MemberName, const char* Mugshot, float Initiative)
+void AddPartyMember(const char* MemberName, CharacterClass::Type InClass, const char* Mugshot, float Initiative, int InLevel)
 {
-	CurrentPartyCount++;
-	u32 PartyIndex = GetNextIndex(PartyBundle);
-	Party[PartyIndex].Mugshot = LoadTexture(Mugshot);
-	Party[PartyIndex].Initiative = Initiative;
-	strcpy_s(Party[PartyIndex].Name, 64, MemberName);
+	PartyMember PM;
+	PM.Mugshot = LoadTexture(Mugshot);
+	PM.Initiative = Initiative;
+	PM.Class = InClass;
+	strcpy_s(PM.Name, 64, MemberName);
+	Party.push_back(PM);
+
+	SetPartyMemberLevel(Party.size()-1, InLevel);
+}
+
+#define COPY_CLASS_SKILLS(X) \
+	for (int i = 0; i < PM.Level; i++) \
+	{\
+		for (int j = 0; j < sizeof(X[i]) / sizeof(GameSkill); j++) \
+		{\
+			GameSkill& Skill = X[i][j]; \
+			PM.Skills.push_back(Skill); \
+		} \
+	}
+
+void SetPartyMemberClass(int Index, CharacterClass::Type InClass)
+{
+	PartyMember& PM = Party[Index];
+	PM.Skills.Reset();
+
+	switch(InClass)
+	{
+		case CharacterClass::Type::Warrior:
+		{
+			COPY_CLASS_SKILLS(WarriorLevels)
+		}
+		break;
+		case CharacterClass::Type::Witch:
+		{
+			COPY_CLASS_SKILLS(WitchLevels)
+			
+		} 
+		break;
+		case CharacterClass::Type::Priest:
+		{
+			COPY_CLASS_SKILLS(WitchLevels)
+		} 
+		break;
+	}
+}
+
+void SetPartyMemberLevel(int Index, int Level)
+{
+	PartyMember& PM = Party[Index];
+	PM.Level = Level;
+	SetPartyMemberClass(Index, PM.Class);
 }

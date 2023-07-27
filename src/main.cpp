@@ -77,10 +77,10 @@ void InitPlayer()
 	Context._256RectangleSprite.texture = LoadTexture("textures/ui/256Rectangle.png");
 	Context.MainTitleSprite.texture = LoadTexture("textures/ui/MainTitle.png");
 	//Create party
-	AddPartyMember("Player", "textures/ui/warrior_mugshot.png", 1.0f);
-	AddPartyMember("Monk", "textures/ui/monk_mugshot.png", 2.0f);
-	AddPartyMember("Witch", "textures/ui/witch_mugshot.png", 0.5f);
-	AddPartyMember("Otter", "textures/ui/otter_mugshot.png", 7.0f);
+	AddPartyMember("Player", CharacterClass::Type::Warrior, "textures/ui/warrior_mugshot.png", 1.0f, 1);
+	AddPartyMember("Priest", CharacterClass::Type::Priest,"textures/ui/monk_mugshot.png", 2.0f, 1);
+	AddPartyMember("Witch", CharacterClass::Type::Witch,"textures/ui/witch_mugshot.png", 0.5f, 1);
+	AddPartyMember("Otter", CharacterClass::Type::Warrior,"textures/ui/otter_mugshot.png", 7.0f, 1);
 	
 	Party[3].Level++;
 	//QueueDialogueMessage("I think I sense a trap", 5.0f, true);

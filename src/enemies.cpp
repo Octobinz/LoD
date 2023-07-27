@@ -19,6 +19,21 @@ void RemoveEnemy(u32 index)
 	ReleaseIndex(EnemiesBundle, index);
 }
 
+void SetEnemyLevel(int InEnemy, int level)
+{
+	Enemy& CurrentEnemy = GameEnemies[InEnemy];
+	CurrentEnemy.Skills.Reset();
+
+	for (int i = 0; i < level; i++)
+	{
+		for (int j = 0; j < sizeof(MeleeEnemyLevels[i]) / sizeof(GameSkill); j++)
+		{
+			GameSkill& Skill = MeleeEnemyLevels[i][j];
+			CurrentEnemy.Skills.push_back(Skill);
+		}
+	}
+}
+
 void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 {
 	u32 LocatorIndex = GetNextIndex(EnemiesLocatorsBundle);
@@ -30,6 +45,9 @@ void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 	strcpy_s(CurrentEnemy.Name, 128, EnemyName);
 	CurrentEnemy.IdleObject = IdleObjectIndex;
 	CurrentEnemy.Locator = LocatorIndex;
+	
+	SetEnemyLevel(EnemyIndex, 1);
+
 	GameObjects[IdleObjectIndex].ObjectSprite = AddSprite("textures/skeleton.png", x, y);
 	EnemiesLocations[LocatorIndex].x = x;
 	EnemiesLocations[LocatorIndex].y = y;

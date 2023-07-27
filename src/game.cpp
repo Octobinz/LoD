@@ -154,7 +154,7 @@ void TickGame(float DeltaTime)
 						if (CurrentEnemy.HP > 0)
 						{
 							Sprite& CurrentSprite = Sprites[GameObjects[CurrentEnemy.IdleObject].ObjectSprite];
-							initSpriteShake(&CurrentSprite, 1, 2); // Initialize the sprite shake with a duration of 5 seconds
+							InitSpriteShake(&CurrentSprite, 1, 2); // Initialize the sprite shake with a duration of 5 seconds
 						}
 						else
 						{
