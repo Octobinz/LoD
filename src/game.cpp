@@ -11,16 +11,24 @@ GameMode::Mode CurrentGameMode = GameMode::Mode::MainMenu;
 
 void UpdateNavigation(float DeltaTime)
 {
+	const float rotspeed = 3.0f * DeltaTime;
+	const float movespeed = 2.0f * DeltaTime;
+	const float actiondistance = 1.0f;
+
 	Lights[0].location.x = Context.Position.x;
 	Lights[0].location.y = Context.Position.y;
 	Lights[0].radius = 10.0f;
+
 	if (IsKeyReleased(InputKeys::Action)) 
 	{
-		//pitch += 10;
-		//lights[0].radius -= 0.1f;
+		const float futurex = Context.Position.x + Context.Direction.x * actiondistance;
+		const float futurey = Context.Position.y + Context.Direction.y * actiondistance;
+
+		if(MAPDATA[int(futurex) + int(Context.Position.y) * MAP_SIZE] == 2)
+		{
+			MAPDATA[int(futurex) + int(Context.Position.y) * MAP_SIZE] = 0;
+		}
 	}
-	const float rotspeed = 3.0f * 0.016f,
-	movespeed = 3.0f * 0.016f;
 
 	if (IsKeyDown(InputKeys::Left)) 
 	{
@@ -47,6 +55,7 @@ void UpdateNavigation(float DeltaTime)
 		{
 			Context.Position.y = futurey;
 		}
+
 	}
 
 	if (IsKeyDown(InputKeys::Down)) 
@@ -160,6 +169,10 @@ void TickGame(float DeltaTime)
 						{
 							if(CurrentEnemy.HP <= 0)
 							{
+								Enemy& CurrentEnemy = GameEnemies[DmgBundle->TargetEnemy];
+								char Msg[128];
+								sprintf(Msg, "%s Has been defeated!", CurrentEnemy.Name);
+								QueuePopupMessage(Msg, 1.5f);
 								QueueKillEnemy(DmgBundle->TargetEnemy);
 							}
 						}
@@ -168,7 +181,7 @@ void TickGame(float DeltaTime)
 					break;
 				}
 
-				delete M.Data;
+				delete EventQueue[i].Data;
 				EventQueue.erase(EventQueue.begin() + i);
 				return;
 			}

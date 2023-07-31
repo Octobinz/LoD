@@ -60,7 +60,7 @@ void RenderAttackMainMenu()
 	int PartyMemberIndex = G.index;
 	if (G.IsPartyMember)
 	{
-		for (int i = 0; i < Party[PartyMemberIndex].Skills.size(); i++)
+		for (u32 i = 0; i < Party[PartyMemberIndex].Skills.size(); i++)
 		{
 			GameSkill& Skill = Party[PartyMemberIndex].Skills[i];
 			if (YOffset >= 60)
@@ -174,25 +174,25 @@ void RenderCombatUI()
 void RenderParty()
 {
 	float yOffset = 0.0f;
-	for (int i = 0; i < Party.size(); i++)
+	for (u32 i = 0; i < Party.size(); i++)
 	{
-		GameTexture& UI64Square = texture.Get(Context._64SquareSprite.texture);
+		GameTexture& UI64Square = *UsedTextures.Get(Context._64SquareSprite.texture);
 		float UIScale = 0.8f;
 		if (i == CurrentPartyContext.CurrentPartyMember)
 			UIScale = 1.0f;
-		pd->graphics->drawScaledBitmap(UI64Square.img, 0, yOffset, UIScale,UIScale);
+		pd->graphics->drawScaledBitmap(UI64Square.img, 0, (int)yOffset, UIScale,UIScale);
 
 		float MugshotScale = 0.35f;
 		if (i == CurrentPartyContext.CurrentPartyMember)
 			MugshotScale = 0.45f;
-		GameTexture& Mugshot = texture.Get(Party[i].Mugshot);
-		pd->graphics->drawScaledBitmap(Mugshot.img, 3, 4+yOffset, MugshotScale, MugshotScale);
+		GameTexture& Mugshot = *UsedTextures.Get(Party[i].Mugshot);
+		pd->graphics->drawScaledBitmap(Mugshot.img, 3, 4+(int)yOffset, MugshotScale, MugshotScale);
 		
 		if (i == CurrentPartyContext.CurrentPartyMember)
 		{
 			pd->graphics->setFont(fontSmall);
 			pd->graphics->setDrawMode(kDrawModeInverted);
-			pd->graphics->drawText(Party[i].Name, strlen(Party[i].Name), kASCIIEncoding, 8, yOffset + 5);
+			pd->graphics->drawText(Party[i].Name, strlen(Party[i].Name), kASCIIEncoding, 8, (int)yOffset + 5);
 			pd->graphics->setDrawMode(kDrawModeCopy);
 			//pd->graphics->setFont(font);
 		}
@@ -203,7 +203,7 @@ void RenderParty()
 
 void RenderVFX(VFX& InVFX)
 {
-	GameTexture& Effect = texture.Get(InVFX.texture);
+	GameTexture& Effect = *UsedTextures.Get(InVFX.texture);
 	pd->graphics->drawBitmap(Effect.img, InVFX.x, InVFX.y, kBitmapUnflipped);
 }
 
@@ -212,7 +212,7 @@ void RenderPopup(PopupMessage* InPopupMessage)
 	/*	char Message[512];
 	strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
 	*/
-	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
+	GameTexture& UI256Rectangle = *UsedTextures.Get(Context._256RectangleSprite.texture);
 	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
 	pd->graphics->drawText(InPopupMessage->Message, strlen(InPopupMessage->Message), kASCIIEncoding, 80, 185);
 }
@@ -222,7 +222,7 @@ void RenderDialogue(DialogueMessage* InDialogueMessage)
 	/*	char Message[512];
 	strcpy_s(Message, strlen(InPopupMessage->PopupMessage), InPopupMessage.PopupMessage);
 	*/
-	GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
+	GameTexture& UI256Rectangle = *UsedTextures.Get(Context._256RectangleSprite.texture);
 	pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
 	pd->graphics->drawText(InDialogueMessage->Message, strlen(InDialogueMessage->Message), kASCIIEncoding, 80, 10);
 }
@@ -267,7 +267,7 @@ void RenderGameUI(float DeltaTime)
 	if (CurrentGameState == GameState::Combat &&
 		bShouldRenderCombatUI)
 	{	
-		GameTexture& UI256Rectangle = texture.Get(Context._256RectangleSprite.texture);
+		GameTexture& UI256Rectangle = *UsedTextures.Get(Context._256RectangleSprite.texture);
 		pd->graphics->drawBitmap(UI256Rectangle.img, 70, 175, kBitmapUnflipped);
 		RenderCombatUI();
 	}
@@ -277,7 +277,7 @@ void RenderGameUI(float DeltaTime)
 
 void RenderMainMenuUI(float DeltaTime)
 {
-	GameTexture& MainTitleSprite = texture.Get(Context.MainTitleSprite.texture);
+	GameTexture& MainTitleSprite = *UsedTextures.Get(Context.MainTitleSprite.texture);
 	pd->graphics->drawBitmap(MainTitleSprite.img, 0, 0, kBitmapUnflipped);
 }
 

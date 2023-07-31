@@ -145,20 +145,22 @@ __declspec(dllexport)
 		//memset(EngagedEnemies, -1, sizeof(Enemy)*MaxEnemies);
 		InitInputs();
 		InitPlayer();
+
 		AddEnemy("Skeleton", 1.0f, 21.5f, 1.5f);
 		AddEnemy("Skeleton", 1.0f, 15.5f, 1.5f);
 		AddEnemy("Skeleton", 1.0f, 16.0f, 1.8f);
 		AddEnemy("Skeleton", 1.0f, 16.2f, 1.2f);
-		AddEnemy("Skeleton", 1.0f, 3.5f,  2.5f);
+		//AddEnemy("Skeleton", 1.0f, 3.5f,  2.5f);
 		AddEnemy("Skeleton", 1.0f, 9.5f, 15.5f);
 		AddEnemy("Skeleton", 1.0f, 10.0f, 15.1f);
 		AddEnemy("Skeleton", 1.0f, 10.5f, 15.8f);
 
+		//AddSprite("textures/Barrel.png", 2.0f, 0.9f);
 		AddLight(1.0f, 1.0f, 20.0f);
 		AddLight(8.0f, 8.0f, 2.5f);
 
-		Context.Position.x = 5.5; 
-		Context.Position.y = 5.5;
+		Context.Position.x = 1.5; 
+		Context.Position.y = 1.5;
 
 		vector2 v = {-1.0f, 0.1f};
 		vector_normalize(v);
@@ -197,6 +199,7 @@ static int update(void* userdata)
 	pd->system->drawFPS(0, 0);
 */
 	renderUI(CurrentDeltaMilliseconds);
+	pd->system->drawFPS(0, 0);
 
 	return 1;
 }

@@ -66,7 +66,7 @@ bool UpdateCombatMenu(float DeltaTime)
 			if (CurrentGameTurn.IsPartyMember)
 			{
 				PartyMember& Member = Party[CurrentGameTurn.index];
-				for (int i = 0; i < Member.Skills.size(); i++)
+				for (u32 i = 0; i < Member.Skills.size(); i++)
 				{
 					CurrentGameSkills.push_back(Member.Skills[i]);
 				}

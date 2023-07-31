@@ -84,7 +84,7 @@ struct Sprite
 // Function to generate a random number within a given range
 int randomInRange(int min, int max);
 // Function to shake the sprite for a given duration
-void shakeSprite(struct Sprite *sprite, float shakeAmount, float deltaTime); 
+void shakeSprite(struct Sprite *sprite, int shakeAmount, float deltaTime); 
 void InitSpriteShake(struct Sprite *sprite, float shakeDuration, int InShakeAmount);
 
 struct AttackOption

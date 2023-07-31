@@ -103,3 +103,108 @@ private:
 	u32 m_Front = 0;
 	u32 m_MaxCount = 0;
 };
+
+template<class T>
+struct Node 
+{
+	const char* key;
+	T value;
+	Node* next;
+};
+
+template<class T>
+class HashMap {
+private:
+	static const int capacity = 256; // The number of buckets
+	Node<T>* buckets[capacity];
+
+public:
+	HashMap() 
+	{
+		// Initialize all buckets to nullptr
+		for (int i = 0; i < capacity; ++i) 
+		{
+			buckets[i] = nullptr;
+		}
+	}
+
+	// Function to compute an 8-bit checksum from const char* content
+	int hash(const char* content) 
+	{
+		uint8_t checksum = 0;
+
+		// Iterate through the characters in the content
+		for (int i = 0; content[i] != '\0'; i++) {
+			// XOR the checksum with the ASCII value of each character
+			checksum ^= content[i];
+		}
+
+		return checksum % capacity;
+	}
+
+	// Insert a key-value pair into the hashmap
+	void insert(const char* key, const T& value) {
+		int index = hash(key);
+		Node<T>* newNode = new Node<T>{key, value, nullptr};
+
+		if (buckets[index] == nullptr) {
+			// If the bucket is empty, just add the new node
+			buckets[index] = newNode;
+		} else {
+			// If there are already nodes in the bucket, add the new node to the front
+			newNode->next = buckets[index];
+			buckets[index] = newNode;
+		}
+	}
+
+	// Retrieve the value associated with a given key
+	T* get(const char* key) {
+		int index = hash(key);
+		Node<T>* current = buckets[index];
+
+		while (current != nullptr) {
+			if (strcmp(current->key, key) == 0) {
+				return &(current->value);
+			}
+			current = current->next;
+		}
+
+		// If the key is not found, return nullptr
+		return nullptr;
+	}
+
+	// Remove a key-value pair from the hashmap
+	void remove(const char* key) {
+		int index = hash(key);
+		Node<T>* current = buckets[index];
+		Node<T>* prev = nullptr;
+
+		while (current != nullptr) {
+			if (strcmp(current->key, key) == 0) {
+				if (prev != nullptr) {
+					// If the node to remove is not the first in the list
+					prev->next = current->next;
+				} else {
+					// If the node to remove is the first in the list
+					buckets[index] = current->next;
+				}
+				delete current;
+				return;
+			}
+			prev = current;
+			current = current->next;
+		}
+	}
+
+	// Destructor to free memory
+	~HashMap() {
+		for (int i = 0; i < capacity; ++i) {
+			Node<T>* current = buckets[i];
+			while (current != nullptr) {
+				Node<T>* next = current->next;
+				delete current;
+				current = next;
+			}
+		}
+	}
+};

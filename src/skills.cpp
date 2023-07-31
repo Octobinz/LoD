@@ -6,6 +6,28 @@
 #include "raycaster.h"
 #include "combat.h"
 
+
+void CalcAndApplyDamageToEnemy(int Damage, int EnemyIndex)
+{
+	Damage -= GameEnemies[EnemyIndex].Armor;
+
+	QueueEnemyDamage(EnemyIndex, Damage);
+
+	char Msg[128];
+	sprintf(Msg, "%d damages done!", Damage);
+	QueuePopupMessage(Msg, 1.5f);
+}
+
+void CalcAndApplyDamageToPartyMember(int Damage, int PlayerIndex)
+{
+	Damage -= Party[PlayerIndex].Armor;
+	QueuePlayerDamage(&Party[PlayerIndex], 25);
+
+	char Msg[128];
+	sprintf(Msg, "%s received %d damages !", Party[PlayerIndex].Name, Damage);
+	QueuePopupMessage(Msg, 1.5f);
+}
+
 void GameSkill::PE(int PlayerIndex, int InEnemy)
 {
 	char Msg[128];
@@ -23,58 +45,76 @@ void GameSkill::EP(int InEnemy, int PlayerIndex)
 	EnemyAction(InEnemy, PlayerIndex);
 }
 
-void skill_stab_PE(int PlayerIndex, int Enemy)
+void skill_stab_PE(int PlayerIndex, int InEnemy)
 {
 	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
-	QueueEnemyDamage(Enemy, 25);
-	QueuePopupMessage("25 Damages done!", 1.5f);
+	CalcAndApplyDamageToEnemy(25, InEnemy);
 }
 
 void skill_stab_EP(int InEnemy, int PlayerIndex)
 {
 	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
-	QueuePlayerDamage(&Party[PlayerIndex], 25);
-	QueuePopupMessage("25 Damages done!", 1.5f);
+	CalcAndApplyDamageToPartyMember(15, PlayerIndex);
 }
 
 void skill_swing_PE(int PlayerIndex, int InEnemy)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToEnemy(150, InEnemy);
 }
 
 void skill_swing_EP(int InEnemy, int PlayerIndex)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToPartyMember(15, PlayerIndex);
 }
 
 void skill_thrust_PE(int PlayerIndex, int InEnemy)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToEnemy(25, InEnemy);
 }
 
 void skill_thrust_EP(int InEnemy, int PlayerIndex)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToPartyMember(15, PlayerIndex);
 }
 
 void skill_fire_PE(int PlayerIndex, int InEnemy)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToEnemy(25, InEnemy);
 }
 
 void skill_fire_EP(int InEnemy, int PlayerIndex)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToPartyMember(15, PlayerIndex);
 }
 
 void skill_ice_PE(int PlayerIndex, int InEnemy)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToEnemy(25, InEnemy);
 }
 
 void skill_ice_EP(int InEnemy, int PlayerIndex)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToPartyMember(15, PlayerIndex);
 }
 
 void skill_focus_PE(int PlayerIndex, int InEnemy)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToEnemy(25, InEnemy);
 }
 
 void skill_focus_EP(int InEnemy, int PlayerIndex)
 {
+	QueueVFX(Context.SlashSprite.texture, 80, -50, 1.0f, false);
+	CalcAndApplyDamageToPartyMember(15, PlayerIndex);
 }
 
 GameSkill Stab 		= { "Stab", 	skill_stab_PE, 		skill_stab_EP };

@@ -26,6 +26,7 @@ struct Enemy
 	float AttackTimer = 1.0f;// In seconds
 	float CurrentAttackTimer = 1.0f;// In seconds
 	float Initiative = 1.0f;
+	int Armor = 1;
 	int HP = 100;
 	int PlayerTarger = 0;
 	GrowArray<GameSkill> Skills;

@@ -22,7 +22,7 @@ float ZBuffer[SCREEN_WIDTH];
 
 #define numSprites 19
 
-GrowArray<GameTexture> texture;
+GrowArray<GameTexture*> UsedTextures;
 EntityBundle<Sprite> SpritesBundle;
 EntityBundle<Light> LightsBundle;
 
@@ -63,36 +63,44 @@ void RemoveSprite(int index)
 	ReleaseIndex(SpritesBundle, index);
 }
 
+HashMap<GameTexture> GameTextures;
+//GameTexture GameTextures[256];
+
 int LoadTexture(const char* filename)
 {
-	const char *outErr = NULL;
-	LCDBitmap *img = pd->graphics->loadBitmap(filename, &outErr);
-		
-	int width; 
-	int height; 
-	int rowbytes; 
-	uint8_t* mask; 
-	uint8_t* data; 
-	pd->graphics->getBitmapData(img, &width, &height, &rowbytes, &mask, &data);
-	int index = texture.size();
-	
-	GameTexture G;
-	G.texture = (u8*)malloc(width * height);
-	G.mask = (u8*)malloc(width * height);
-	G.width = width;
-	G.height = height;
-	G.rowbyte = rowbytes;
-	G.img = img;
-	memcpy(G.texture, data, (width*height) / 8);
-	
-	if (mask != nullptr)
+	GameTexture* cs = GameTextures.get(filename);
+	if (cs == nullptr)
 	{
-		memcpy(G.mask, mask, (width*height) / 8);
+		GameTexture G;
+		const char *outErr = NULL;
+		LCDBitmap *img = pd->graphics->loadBitmap(filename, &outErr);
+			
+		int width;
+		int height;
+		int rowbytes;
+		uint8_t* mask;
+		uint8_t* data;
+		pd->graphics->getBitmapData(img, &width, &height, &rowbytes, &mask, &data);
+		G.texture = (u8*)malloc(width * height);
+		G.mask = (u8*)malloc(width * height);
+		G.width = width;
+		G.height = height;
+		G.rowbyte = rowbytes;
+		G.img = img;
+		memcpy(G.texture, data, (width*height) / 8);
+		
+		if (mask != nullptr)
+		{
+			memcpy(G.mask, mask, (width*height) / 8);
+		}
+		GameTextures.insert(filename, G);
+		cs = GameTextures.get(filename);
 	}
 
-	texture.AddElement(G);
-
+	int index = UsedTextures.size();
+	UsedTextures.AddElement(cs);	
 	return index;
+
 }
 
 //arrays used to sort the sprites
@@ -139,10 +147,10 @@ float GetLightAttenuation(vector3& InPosition, Light& InLight)
 u8 MAPDATA[MAP_SIZE * MAP_SIZE] =
 {
 	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
-	1,0,0,0,1,0,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,
+	1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,
 	1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,
-	1,0,0,0,1,0,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,1,0,1,
+	1,0,0,0,1,1,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,1,0,1,
 	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,1,0,1,
 	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,1,1,0,1,
 	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1,
@@ -227,7 +235,7 @@ void renderFloor()
 			int checkerBoardPattern = (int(cellX + cellY)) & 1;
 			int floorTexture = 1;//11;
 			int ceilingTexture = 1;//6;
-			GameTexture& Tex = texture.Get(floorTexture);
+			GameTexture& Tex = *UsedTextures.Get(floorTexture);
 			// get the texture coordinate from the fractional part
 			int tx = (int)(Tex.width * (floorX - cellX)) & (Tex.width - 1);
 			int ty = (int)(Tex.height * (floorY - cellY)) & (Tex.height - 1);
@@ -317,7 +325,7 @@ void renderWalls()
 		vector2 deltaDist;
 		deltaDist.x = (RayDirection.x == 0.0f) ? FLT_MAX : std::abs(1.0f / RayDirection.x);
 		deltaDist.y = (RayDirection.y == 0.0f) ? FLT_MAX : std::abs(1.0f / RayDirection.y);
-		float perpWallDist;
+		float perpWallDist = 0.0f;
 	
 		//what direction to step in x or y-direction (either +1 or -1)
 		int stepX;
@@ -404,7 +412,7 @@ void renderWalls()
 		}
 		float wallX = OwallX-floor(OwallX);
 	
-		GameTexture& Tex = texture.Get(texNum);
+		GameTexture& Tex = *UsedTextures.Get(texNum);
 
 		int texWidth = Tex.width;
 		int texHeight = Tex.height;
@@ -532,7 +540,7 @@ void renderSprites(float DeltaTime)
 			int drawEndX = spriteWidth / 2 + spriteScreenX;
 			if (drawEndX >= SCREEN_WIDTH) drawEndX = SCREEN_WIDTH - 1;
 	
-			GameTexture& CurrentTexture = texture.Get(CurrentSprite.texture);
+			GameTexture& CurrentTexture = *UsedTextures.Get(CurrentSprite.texture);
 			int texWidth = CurrentTexture.width;
 			int texHeight = CurrentTexture.height;
 	

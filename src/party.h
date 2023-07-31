@@ -33,6 +33,7 @@ struct PartyMember
 	
 	int HP = 100;
 	int Level = 1;
+	int Armor = 10;
 	bool Engaged = false;
 
 	CharacterClass::Type Class = CharacterClass::Warrior;

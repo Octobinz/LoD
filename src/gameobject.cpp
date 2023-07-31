@@ -29,7 +29,7 @@ void InitSpriteShake(struct Sprite *sprite, float shakeDuration, int InShakeAmou
 }
 
 // Function to shake the sprite for a given duration
-void shakeSprite(struct Sprite *sprite, float shakeAmount, float deltaTime) 
+void shakeSprite(struct Sprite *sprite, int shakeAmount, float deltaTime) 
 {
 	if (sprite->shakeRemainingTime <= 0.0f)
 	{
