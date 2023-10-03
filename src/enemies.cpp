@@ -3,6 +3,7 @@
 #include "enemies.h"
 #include "raycaster.h"
 #include "locator.h"
+#include "pathfinding.h"
 
 GrowArray<u32> EngagedEnemies;
 GrowArray<Enemy> GameEnemies;
@@ -42,7 +43,7 @@ void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 
 	Enemy& CurrentEnemy = GameEnemies[EnemyIndex];
 	CurrentEnemy.Engaged = false;
-	strcpy_s(CurrentEnemy.Name, 128, EnemyName);
+	strcpy(CurrentEnemy.Name, EnemyName);
 	CurrentEnemy.IdleObject = IdleObjectIndex;
 	CurrentEnemy.Locator = LocatorIndex;
 	
@@ -51,6 +52,12 @@ void AddEnemy(const char* EnemyName, float Initiative, float x, float y)
 	GameObjects[IdleObjectIndex].ObjectSprite = AddSprite("textures/skeleton.png", x, y);
 	EnemiesLocations[LocatorIndex].x = x;
 	EnemiesLocations[LocatorIndex].y = y;
+
+	Coordinate start(1, 4);
+	Coordinate goal(1, 5);
+	Coordinate path[MAP_SIZE * MAP_SIZE];
+	int pathLength = 0;
+	findPath(start, goal, MAPDATA, path, pathLength);
 }
 
 void AddEnemiesClosestTo(vector2& InLocation, float Radius)

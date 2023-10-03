@@ -1,10 +1,5 @@
 #include "inputs.h"
 
-extern "C"
-{
-	#include "pd_api.h"
-}
-
 u32 inputs_released;
 u32 inputs_down;
 

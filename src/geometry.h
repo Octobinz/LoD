@@ -63,19 +63,19 @@ float interp(float x1, float x2, float t);
 /*
 	Vector math	
 */
-FORCEINLINE float vector_length(const vector4& v) 
+static FORCEINLINE float vector_length(const vector4& v) 
 {
 	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
 	return (float)sqrt(sq);
 }
 
-FORCEINLINE float vector_length(const vector3& v) 
+static FORCEINLINE float vector_length(const vector3& v)
 {
 	float sq = v.x * v.x + v.y * v.y + v.z * v.z;
 	return (float)sqrt(sq);
 }
 
-FORCEINLINE float vector_length(const vector2& v) 
+static FORCEINLINE float vector_length(const vector2& v)
 {
 	float sq = v.x * v.x + v.y * v.y;
 	return (float)sqrt(sq);
@@ -86,13 +86,13 @@ void vector_add(vector2 *z, const vector2 *x, const vector2 *y);
 void vector_add(vector4 *z, const vector4 *x, const vector4 *y);
 void vector_sub(vector4 *z, const vector4 *x, const vector4 *y);
 
-FORCEINLINE void vector_sub(vector2& z, const vector2& x, const vector2& y) 
+static FORCEINLINE void vector_sub(vector2& z, const vector2& x, const vector2& y)
 {
 	z.x = x.x - y.x;
 	z.y = x.y - y.y;
 }
 
-FORCEINLINE float vector_dotproduct(const vector2 &x, const vector2 &y)
+static FORCEINLINE float vector_dotproduct(const vector2 &x, const vector2 &y)
 {
 	return x.x * y.x + x.y * y.y;
 };

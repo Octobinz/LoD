@@ -1,12 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include <vector>
-
-extern "C"
-{
-#include "pd_api.h"
-}
+#include "growarray.h"
 
 namespace EventSystem
 {
@@ -56,7 +51,7 @@ struct VFX
 	int y;
 };
 
-extern std::vector<EventSystem::Event> EventQueue;
+extern GrowArray<EventSystem::Event> EventQueue;
 
 template<class T>
 T& GetEvent(int index)

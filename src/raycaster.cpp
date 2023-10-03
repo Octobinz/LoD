@@ -3,12 +3,6 @@
 #include <math.h>
 #include <assert.h>
 #include <cmath>
-#include <tchar.h>
-
-extern "C"
-{
-	#include "pd_api.h"
-}
 #include "geometry.h"
 #include "gameobject.h"
 #include "raycaster.h"
@@ -18,7 +12,39 @@ extern "C"
 uint8_t *screen_fb = NULL;		// frame buffer
 
 
-float ZBuffer[SCREEN_WIDTH];
+float* ZBuffer;
+//arrays used to sort the sprites
+int* SpriteOrder;
+float* SpriteDistance;
+
+//u8* MAPDATA;
+u8 MAPDATA[MAP_SIZE * MAP_SIZE] =
+{
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,
+	1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,
+	1,0,0,0,1,1,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,1,0,1,
+	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,1,0,1,
+	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,1,1,0,1,
+	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+};
 
 #define numSprites 19
 
@@ -26,8 +52,46 @@ GrowArray<GameTexture*> UsedTextures;
 EntityBundle<Sprite> SpritesBundle;
 EntityBundle<Light> LightsBundle;
 
-Sprite Sprites[MaxSprites];
-Light Lights[MaxLights];
+Sprite* Sprites;
+Light* Lights;
+
+void InitRaycaster()
+{
+	ZBuffer = (float*)malloc(sizeof(float) * SCREEN_WIDTH);
+	SpriteOrder = (int*)malloc(sizeof(int) * MaxSprites);
+	SpriteDistance = (float*)malloc(sizeof(float) * MaxSprites);
+	Sprites = new Sprite[MaxSprites];
+	Lights = new Light[MaxLights];
+
+	//MAPDATA = (u8*)malloc(sizeof(u8) * MAP_SIZE * MAP_SIZE);
+	/*MAPDATA =
+	{
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+		1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,
+		1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,
+		1,0,0,0,1,1,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,1,0,1,
+		1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,1,0,1,
+		1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,1,1,0,1,
+		1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+		1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+	};*/
+}
 
 int AddLight(float x, float y, float radius)
 {
@@ -103,11 +167,7 @@ int LoadTexture(const char* filename)
 
 }
 
-//arrays used to sort the sprites
-int SpriteOrder[MaxSprites];
-float SpriteDistance[MaxSprites];
-
-void SortSprites(int (&SpriteOrder)[MaxSprites])
+void SortSprites(int* SpriteOrder)
 {
 	for (u32 i = 0; i < SpritesBundle.MaxIndex; i++)
 	{
@@ -143,34 +203,6 @@ float GetLightAttenuation(vector3& InPosition, Light& InLight)
 		return 0.0f;
 	return ratio;
 }
-
-u8 MAPDATA[MAP_SIZE * MAP_SIZE] =
-{
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,0,1,1,1,
-	1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,
-	1,0,0,0,1,1,2,2,2,2,2,0,0,0,0,3,0,3,0,3,0,1,0,1,
-	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,1,0,1,
-	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,3,0,0,0,3,1,1,0,1,
-	1,0,0,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,2,2,0,2,2,0,0,0,0,3,0,3,0,3,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,0,0,0,0,5,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,0,4,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,0,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,4,4,4,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-};
 
 
 int pitch = 0;
@@ -250,22 +282,26 @@ void renderFloor()
 			PixelWorldPosition.y = floorY;
 			PixelWorldPosition.z = 0.5f;
 
-			float LightAttenuation = 0.0f;
-			for(u32 i = 0; i < LightsBundle.MaxIndex; i++)
+			float LightAttenuation = 1.0f;
+			/*for (u32 i = 0; i < LightsBundle.MaxIndex; i++)
 				LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
-
+				*/
 			if(is_floor) 
 			{
 				// floor
-				color = samplepixel(Tex.texture, tx, ty, Tex.rowbyte);
+				//color = samplepixel(Tex.texture, tx, ty, Tex.rowbyte);
 				int index = (y * SCREEN_WIDTH) + x;
 				int byteIndex = index / 8;
 				int bitOffset = index % 8;
 
 				int modulofactor = int((1.0f - LightAttenuation) * 5.0f) + 1;
 				//bool Penumbra = (tx % modulofactor && ty % modulofactor);
-				bool bBlack = (color == 0);// || Penumbra || (LightAttenuation < 0.2f);
-
+				bool InShadow = (LightAttenuation < 0.2f);
+				bool bBlack = false;//(color == 0);// || Penumbra || (LightAttenuation < 0.2f);
+				if(InShadow)
+				{
+					bBlack = !bBlack;
+				}
 				if (bBlack)
 				{
 					screen_fb[byteIndex] &= ~(1 << (7 - bitOffset));
@@ -286,8 +322,12 @@ void renderFloor()
 				int bitOffset = index % 8;
 				int modulofactor = int((1.0f - LightAttenuation) * 5.0f) + 1;
 				//bool Penumbra = (tx % modulofactor && ty % modulofactor);
+				bool InShadow = (LightAttenuation < 0.2f);
 				bool bBlack = (color == 0);// || Penumbra || (LightAttenuation < 0.2f);
-
+				if(InShadow)
+				{
+					bBlack = !bBlack;
+				}
 				if (bBlack)
 				{
 					screen_fb[byteIndex] &= ~(1 << (7 - bitOffset));
@@ -447,7 +487,7 @@ void renderWalls()
 			//texture[texNum][texHeight * texY + texX];
 	
 
-			float currentDist = SCREEN_HEIGHT / (2.0f * y - SCREEN_HEIGHT); //you could make a small lookup table for this instead
+			float currentDist = SCREEN_HEIGHT_FLOAT / (2.0f * y - SCREEN_HEIGHT_FLOAT); //you could make a small lookup table for this instead
 			float weight = (currentDist - distPlayer) / (distWall - distPlayer);	
 			//floor
 			//int floorindex = (y * SCREEN_WIDTH) + x;
@@ -462,13 +502,18 @@ void renderWalls()
 			PixelWorldPosition.x = RayCollision.x - ( texX / Tex.width );
 			PixelWorldPosition.y = RayCollision.y - ( texY / Tex.height );// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
 			PixelWorldPosition.z = 0.0f;
-			float LightAttenuation = 0.0f;
-			for(u32 i = 0; i < LightsBundle.MaxIndex; i++)
+			float LightAttenuation = 1.0f;
+			/*for (u32 i = 0; i < LightsBundle.MaxIndex; i++)
 				LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
-
+				*/
 			int modulofactor = int((1.0f - LightAttenuation) * 5.0f)+1;
 			//bool Penumbra = (texX % modulofactor && texY % modulofactor);
+			bool InShadow = (LightAttenuation < 0.2f);
 			bool bBlack = (color == 0);// || Penumbra || (LightAttenuation < 0.2f);
+			if(InShadow)
+			{
+				bBlack = !bBlack;
+			}
 
 			if (bBlack)
 			{
@@ -526,7 +571,7 @@ void renderSprites(float DeltaTime)
 			int vMoveScreen = int(vMove / transformY) + pitch + int(posZ / transformY);
 	
 			//calculate height of the sprite on screen
-			int spriteHeight = int(fabs(int(SCREEN_HEIGHT / (transformY))) / CurrentSprite.scale); //using "transformY" instead of the real distance prevents fisheye
+			int spriteHeight = int(fabsf(int(SCREEN_HEIGHT_FLOAT / (transformY))) / CurrentSprite.scale); //using "transformY" instead of the real distance prevents fisheye
 			//calculate lowest and highest pixel to fill in current stripe
 			int drawStartY = -(spriteHeight>> 1) + (SCREEN_HEIGHT>> 1) + vMoveScreen;
 			if (drawStartY < 0) drawStartY = 0;
@@ -534,7 +579,7 @@ void renderSprites(float DeltaTime)
 			if (drawEndY >= SCREEN_HEIGHT) drawEndY = SCREEN_HEIGHT - 1;
 	
 			//calculate width of the sprite
-			int spriteWidth = int(fabs(int (SCREEN_HEIGHT / (transformY))) / CurrentSprite.scale);
+			int spriteWidth = int(fabsf(int (SCREEN_HEIGHT_FLOAT / (transformY))) / CurrentSprite.scale);
 			int drawStartX = -spriteWidth / 2 + spriteScreenX;
 			if (drawStartX < 0) drawStartX = 0;
 			int drawEndX = spriteWidth / 2 + spriteScreenX;
@@ -567,10 +612,10 @@ void renderSprites(float DeltaTime)
 							PixelWorldPosition.x = transformX;
 							PixelWorldPosition.y = transformY;// + (y / (float)SCREEN_HEIGHT); //(1.0f - mapY)/* + (float)(y / (float)SCREEN_HEIGHT)*/;
 							PixelWorldPosition.z = 0.0f;
-							float LightAttenuation = 0.0f;
-							for (u32 i = 0; i < LightsBundle.MaxIndex; i++)
+							float LightAttenuation = 1.0f;
+							/*for (u32 i = 0; i < LightsBundle.MaxIndex; i++)
 								LightAttenuation += GetLightAttenuation(PixelWorldPosition, Lights[i]);
-	
+	*/
 							int index = (y * SCREEN_WIDTH) + stripe;
 							int byteIndex = index / 8;
 							int bitOffset = index % 8;

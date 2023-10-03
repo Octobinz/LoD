@@ -7,7 +7,16 @@ void TickMainMenu(float DeltaTime)
 	UpdateInputs();
 	if (IsKeyReleased(InputKeys::Action))
 	{
-		CurrentGameMode = GameMode::Mode::InGame;
+		CurrentGameMode = GameMode::Mode::ScrollingIntro;
 	}
 
+}
+
+void TickScrollingIntro(float DeltaTime)
+{
+	UpdateInputs();
+	if (IsKeyReleased(InputKeys::Action))
+	{
+		CurrentGameMode = GameMode::Mode::InGame;
+	}
 }

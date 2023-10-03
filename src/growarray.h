@@ -1,6 +1,8 @@
 #pragma once
 
 #include "types.h"
+#include <cstdlib>
+#include <string.h>
 #include <utility>
 
 template<class T>
@@ -105,18 +107,18 @@ private:
 };
 
 template<class T>
-struct Node 
+struct HashNode 
 {
 	const char* key;
 	T value;
-	Node* next;
+	HashNode* next;
 };
 
 template<class T>
 class HashMap {
 private:
 	static const int capacity = 256; // The number of buckets
-	Node<T>* buckets[capacity];
+	HashNode<T>* buckets[capacity];
 
 public:
 	HashMap() 
@@ -145,22 +147,22 @@ public:
 	// Insert a key-value pair into the hashmap
 	void insert(const char* key, const T& value) {
 		int index = hash(key);
-		Node<T>* newNode = new Node<T>{key, value, nullptr};
+		HashNode<T>* newHashNode = new HashNode<T>{key, value, nullptr};
 
 		if (buckets[index] == nullptr) {
-			// If the bucket is empty, just add the new node
-			buckets[index] = newNode;
+			// If the bucket is empty, just add the new HashNode
+			buckets[index] = newHashNode;
 		} else {
-			// If there are already nodes in the bucket, add the new node to the front
-			newNode->next = buckets[index];
-			buckets[index] = newNode;
+			// If there are already HashNodes in the bucket, add the new HashNode to the front
+			newHashNode->next = buckets[index];
+			buckets[index] = newHashNode;
 		}
 	}
 
 	// Retrieve the value associated with a given key
 	T* get(const char* key) {
 		int index = hash(key);
-		Node<T>* current = buckets[index];
+		HashNode<T>* current = buckets[index];
 
 		while (current != nullptr) {
 			if (strcmp(current->key, key) == 0) {
@@ -176,16 +178,16 @@ public:
 	// Remove a key-value pair from the hashmap
 	void remove(const char* key) {
 		int index = hash(key);
-		Node<T>* current = buckets[index];
-		Node<T>* prev = nullptr;
+		HashNode<T>* current = buckets[index];
+		HashNode<T>* prev = nullptr;
 
 		while (current != nullptr) {
 			if (strcmp(current->key, key) == 0) {
 				if (prev != nullptr) {
-					// If the node to remove is not the first in the list
+					// If the HashNode to remove is not the first in the list
 					prev->next = current->next;
 				} else {
-					// If the node to remove is the first in the list
+					// If the HashNode to remove is the first in the list
 					buckets[index] = current->next;
 				}
 				delete current;
@@ -199,9 +201,9 @@ public:
 	// Destructor to free memory
 	~HashMap() {
 		for (int i = 0; i < capacity; ++i) {
-			Node<T>* current = buckets[i];
+			HashNode<T>* current = buckets[i];
 			while (current != nullptr) {
-				Node<T>* next = current->next;
+				HashNode<T>* next = current->next;
 				delete current;
 				current = next;
 			}

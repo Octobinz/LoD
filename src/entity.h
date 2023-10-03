@@ -3,21 +3,27 @@
 #include "geometry.h"
 #include <math.h>
 
-const u32 MaxEntities = 65535;
-const u32 MaskCount = MaxEntities >> 6;
+const u32 MaxEntities = 256;
+const u32 MaskCount = MaxEntities >> 5;
 
 #ifdef _MSC_VER
+
 #include <intrin.h>
-FORCEINLINE int getIndexOfFirstZeroBit(u64 num)
+static FORCEINLINE int getIndexOfFirstZeroBit(u32 num)
 {
 	unsigned long index = 0;
-	unsigned char isNonzero = _BitScanReverse64(&index, num);
+	unsigned char isNonzero = _BitScanReverse(&index, num);
 	return isNonzero ? index + 1 : 0;
 }
 #else
-FORCEINLINE int getIndexOfFirstZeroBit(uint64_t num) 
+
+static FORCEINLINE int getIndexOfFirstZeroBit(uint32_t num)
 {
-	return __builtin_clzll(num) ^ 63;
+	if (num == 0)
+	{
+		return 1;
+	}
+	return __builtin_clz(num) - 30;
 }
 #endif
 
@@ -25,9 +31,17 @@ FORCEINLINE int getIndexOfFirstZeroBit(uint64_t num)
 template<class T>
 struct EntityBundle
 {
+	EntityBundle()
+	{
+		Entities = new T[MaxEntities]();
+	}
+	~EntityBundle()
+	{
+		delete[] Entities;
+	}
 	u32 MaxIndex = 0;
-	T Entities[MaxEntities];
-	u64 FreeListMask[MaskCount];
+	T* Entities;
+	u32 FreeListMask[MaskCount];
 };
 
 extern EntityBundle<vector2> EnemiesLocators;
@@ -38,8 +52,8 @@ void InitEntitiesBundle(EntityBundle<T>& InBundle);
 template<class T>
 FORCEINLINE bool IsIndexValid(EntityBundle<T>& InBundle, u32 InIndex)
 {
-	const u64& Mask = InBundle.FreeListMask[InIndex >> 6];
-	return (Mask & (u64(1) << InIndex));
+	const u32& Mask = InBundle.FreeListMask[InIndex >> 5];
+	return (Mask & (u32(1) << InIndex));
 }
 
 template<class T>
@@ -47,7 +61,7 @@ FORCEINLINE u32 GetNextIndex(EntityBundle<T>& InBundle)
 {
 	for(int i = 0; i < MaskCount; i++)
 	{
-		u64& Mask = InBundle.FreeListMask[i];
+		u32& Mask = InBundle.FreeListMask[i];
 		if (Mask != ~0)
 		{
 			u32 index = getIndexOfFirstZeroBit(Mask);
@@ -64,6 +78,6 @@ template<class T>
 FORCEINLINE void ReleaseIndex(EntityBundle<T>& InBundle, u32 InIndex)
 {
 	//--InBundle.EntityCount;
-	u64& Mask = InBundle.FreeListMask[InIndex >> 6];
-	Mask &= ~(u64(1) << InIndex);
+	u32& Mask = InBundle.FreeListMask[InIndex >> 5];
+	Mask &= ~(u32(1) << InIndex);
 }

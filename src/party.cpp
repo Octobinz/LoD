@@ -15,7 +15,7 @@ void AddPartyMember(const char* MemberName, CharacterClass::Type InClass, const 
 	PM.Mugshot = LoadTexture(Mugshot);
 	PM.Initiative = Initiative;
 	PM.Class = InClass;
-	strcpy_s(PM.Name, 64, MemberName);
+	strcpy(PM.Name, MemberName);
 	Party.push_back(PM);
 
 	SetPartyMemberLevel(Party.size()-1, InLevel);

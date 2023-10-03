@@ -12,7 +12,7 @@ const char* fontpathSmall = "Fonts/namco-1x";
 LCDFont* font = nullptr;
 LCDFont* fontSmall = nullptr;
 
-std::vector<EventSystem::Event> EventQueue;
+GrowArray<EventSystem::Event> EventQueue;
 
 
 void RenderSpellMainMenu()
@@ -281,6 +281,17 @@ void RenderMainMenuUI(float DeltaTime)
 	pd->graphics->drawBitmap(MainTitleSprite.img, 0, 0, kBitmapUnflipped);
 }
 
+static float scrollY = 50;
+void RenderScrollingIntroUI(float DeltaTime)
+{
+	pd->graphics->clear(kColorWhite);
+	scrollY -= DeltaTime * 15.0f;
+	pd->graphics->drawText("In a world where", strlen("In a world where"), kASCIIEncoding, 20, scrollY);
+	pd->graphics->drawText("mistery is misterious", strlen("mistery is misterious"), kASCIIEncoding, 20, scrollY + 15);
+
+}
+
+
 void renderUI(float DeltaTime)
 {
 	switch(CurrentGameMode)
@@ -293,20 +304,23 @@ void renderUI(float DeltaTime)
 		case GameMode::MainMenu:
 			RenderMainMenuUI(DeltaTime);
 			break;
+		case GameMode::ScrollingIntro:
+			RenderScrollingIntroUI(DeltaTime);
+			break;
 	}
 }
 
 void QueuePopupMessage(const char* message, float Duration, bool blocking)
 {
 	PopupMessage* Message = new PopupMessage();
-	strcpy_s(Message->Message, 512, message);
+	strcpy(Message->Message, message);
 	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
 }
 
 void QueueDialogueMessage(const char* message, float Duration, bool blocking )
 {
 	DialogueMessage* Message = new DialogueMessage();
-	strcpy_s(Message->Message, 512, message);
+	strcpy(Message->Message, message);
 	AddEvent<PopupMessage>(EventSystem::Type::PopupMessage, Message, Duration, blocking);
 }
 

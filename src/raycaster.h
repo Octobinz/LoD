@@ -12,10 +12,11 @@ extern GrowArray<GameTexture*> UsedTextures;
 
 static const u32 MaxSprites = 512;
 static const u32 MaxLights = 32;
-extern Sprite Sprites[MaxSprites];
-extern Light Lights[MaxLights];
+extern Sprite* Sprites;
+extern Light* Lights;
 extern EntityBundle<Sprite> SpritesBundle;
 
+void InitRaycaster();
 void renderFloor();
 void renderSprites(float DeltaTime);
 void renderWalls();

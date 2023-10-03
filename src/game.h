@@ -6,6 +6,7 @@ namespace GameMode
 	{
 		SplashScreen,
 		MainMenu,
+		ScrollingIntro,
 		InGame
 	};
 }

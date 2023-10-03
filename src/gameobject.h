@@ -8,15 +8,12 @@
 #include "entity.h"
 #include <time.h>
 
-extern "C"
-{
-#include "pd_api.h"
-}
-
-
 #define SCREEN_WIDTH 416
+#define SCREEN_WIDTH_FLOAT 416.0f
 #define SCREEN_HEIGHT 240
+#define SCREEN_HEIGHT_FLOAT 240.0f
 #define HALF_SCREEN_HEIGHT 120
+#define HALF_SCREEN_HEIGHT_FLOAT 120.0f
 
 namespace CombatMenu
 {

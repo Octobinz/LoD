@@ -1,9 +1,9 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.19)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_XCODE_GENERATE_SCHEME TRUE)
 
 set(ENVSDK $ENV{PLAYDATE_SDK_PATH})
-set(CMAKE_GENERATOR_PLATFORM x64)
 
 if (NOT ${ENVSDK} STREQUAL "")
 	# Convert path from Windows
@@ -23,14 +23,10 @@ if (NOT EXISTS ${SDK})
 	return()
 endif()
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
-set(CMAKE_XCODE_GENERATE_SCHEME TRUE)
-
 # Game Name Customization
-set(PLAYDATE_GAME_NAME mansion_playdate)
-set(PLAYDATE_GAME_DEVICE mansion_playdate_DEVICE)
-
-project(${PLAYDATE_GAME_NAME} CXX C ASM)
+set(PLAYDATE_GAME_NAME LOD_playdate)
+set(PLAYDATE_GAME_DEVICE LOD_playdate)
+project(${PLAYDATE_GAME_DEVICE})
 
 file(GLOB game_SRC
      "src/*.cpp",
@@ -41,13 +37,30 @@ file(GLOB IMAGES
 	"Source/textures/*"
 )
 
-add_definitions(/D_CRT_SECURE_NO_WARNINGS /DBITS64)
+
+# add_definitions(/D_CRT_SECURE_NO_WARNINGS /DBITS64)
+# add_compile_options(-fno-use-cxa-atexit)
+
 
 if (TOOLCHAIN STREQUAL "armgcc")
-	add_executable(${PLAYDATE_GAME_DEVICE} ${game_SRC})
+	message("Building for device")
+	set(CMAKE_CONFIGURATION_TYPES "Release")
+	add_compile_options(-Wdouble-promotion)
+	add_compile_options(-Ofast)
+
+	add_subdirectory(pdcpp)
+	add_playdate_application(${PLAYDATE_GAME_DEVICE})
+	target_sources(${PLAYDATE_GAME_DEVICE} PUBLIC ${game_SRC})
+	target_link_libraries(${PLAYDATE_GAME_DEVICE} pdcpp_core)
 else()
+	message("Building for Windows")
+	set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
+
+	add_definitions(/D_CRT_SECURE_NO_WARNINGS /DBITS64)
+	add_compile_options(-fno-use-cxa-atexit)
+	set(CMAKE_GENERATOR_PLATFORM x64)
 	add_library(${PLAYDATE_GAME_NAME} SHARED ${game_SRC} ${IMAGES})
+	include(${SDK}/C_API/buildsupport/playdate_game.cmake)
 endif()
 
-include(${SDK}/C_API/buildsupport/playdate_game.cmake)
 

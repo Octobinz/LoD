@@ -34,3 +34,6 @@
 /build
 /mansion_playdate.pdx
 /out/build/x64-Debug
+/buildwin
+/LOD_playdate.pdx
+/Source/pdex.elf

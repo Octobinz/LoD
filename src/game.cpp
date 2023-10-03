@@ -182,7 +182,7 @@ void TickGame(float DeltaTime)
 				}
 
 				delete EventQueue[i].Data;
-				EventQueue.erase(EventQueue.begin() + i);
+				EventQueue.erase(i);
 				return;
 			}
 			else
