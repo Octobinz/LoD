@@ -66,7 +66,7 @@ public:
 		}
 		else
 		{
-			memcpy((T*)ScratchMemory + index, (T*)(ScratchMemory) + 1, (m_Count - index ) * sizeof(T));
+			memmove((T*)ScratchMemory + index, (T*)(ScratchMemory) + index + 1, (m_Count - index ) * sizeof(T));
 		}
 	}
 
@@ -79,7 +79,7 @@ public:
 		}
 		else
 		{
-			memcpy(ScratchMemory, (T*)(ScratchMemory) + 1, m_Count * sizeof(T));
+			memmove(ScratchMemory, (T*)(ScratchMemory) + 1, m_Count * sizeof(T));
 		}
 	}
 	FORCEINLINE void Deallocate()
