@@ -60,12 +60,18 @@ public:
 	FORCEINLINE void erase(int index)
 	{
 		--m_Count;
+		
 		if(m_Count == 0)
 		{
 			Deallocate();
 		}
 		else
 		{
+			if(index == m_Count)
+			{
+				return;
+			}
+
 			memmove((T*)ScratchMemory + index, (T*)(ScratchMemory) + index + 1, (m_Count - index ) * sizeof(T));
 		}
 	}
