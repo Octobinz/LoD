@@ -21,9 +21,9 @@ static FORCEINLINE int getIndexOfFirstZeroBit(uint32_t num)
 {
 	if (num == 0)
 	{
-		return 1;
+		return 0;
 	}
-	return __builtin_clz(num) - 30;
+	return 31 - __builtin_clz(num);
 }
 #endif
 

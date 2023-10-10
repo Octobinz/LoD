@@ -26,7 +26,7 @@ endif()
 # Game Name Customization
 set(PLAYDATE_GAME_NAME LOD_playdate)
 set(PLAYDATE_GAME_DEVICE LOD_playdate)
-project(${PLAYDATE_GAME_DEVICE})
+project(${PLAYDATE_GAME_DEVICE} C CXX ASM)
 
 file(GLOB game_SRC
      "src/*.cpp",
@@ -44,13 +44,18 @@ file(GLOB IMAGES
 
 if (TOOLCHAIN STREQUAL "armgcc")
 	message("Building for device")
+	
+	file(GLOB game_ASM
+     "src/*.s",
+	)
+
 	set(CMAKE_CONFIGURATION_TYPES "Release")
 	add_compile_options(-Wdouble-promotion)
 	add_compile_options(-Ofast)
 
 	add_subdirectory(pdcpp)
 	add_playdate_application(${PLAYDATE_GAME_DEVICE})
-	target_sources(${PLAYDATE_GAME_DEVICE} PUBLIC ${game_SRC})
+	target_sources(${PLAYDATE_GAME_DEVICE} PUBLIC ${game_SRC} ${game_ASM})
 	target_link_libraries(${PLAYDATE_GAME_DEVICE} pdcpp_core)
 else()
 	message("Building for Windows")
@@ -59,7 +64,7 @@ else()
 	add_definitions(/D_CRT_SECURE_NO_WARNINGS /DBITS64)
 	add_compile_options(-fno-use-cxa-atexit)
 	set(CMAKE_GENERATOR_PLATFORM x64)
-	add_library(${PLAYDATE_GAME_NAME} SHARED ${game_SRC} ${IMAGES})
+	add_library(${PLAYDATE_GAME_NAME} SHARED ${game_SRC} ${game_ASM} ${IMAGES})
 	include(${SDK}/C_API/buildsupport/playdate_game.cmake)
 endif()
 
