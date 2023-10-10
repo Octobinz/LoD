@@ -67,15 +67,8 @@ FORCEINLINE u32 GetNextIndex(EntityBundle<T>& InBundle)
 		if (Mask != u32(~0))
 		{
 			u32 index = getIndexOfFirstZeroBit(Mask);
-			pd->system->logToConsole("getIndexOfFirstZeroBit %d", index);
-			pd->system->logToConsole("Mask Index is  %d", i);
-
 			Mask |= u32(1) << index;
-			pd->system->logToConsole("MASK IS %d", Mask);
-
 			++InBundle.MaxIndex;
-			pd->system->logToConsole("MAXINDEX IS %d", InBundle.MaxIndex);
-
 			return index * (i + 1);
 		}
 	}
