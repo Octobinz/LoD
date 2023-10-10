@@ -23,7 +23,7 @@ static FORCEINLINE int getIndexOfFirstZeroBit(uint32_t num)
 	{
 		return 0;
 	}
-	return 31 - __builtin_clz(num);
+	return 31 - __builtin_clz(num) + 1;
 }
 #endif
 
@@ -56,17 +56,26 @@ FORCEINLINE bool IsIndexValid(EntityBundle<T>& InBundle, u32 InIndex)
 	return (Mask & (u32(1) << InIndex));
 }
 
+extern PlaydateAPI* pd;
+
 template<class T>
 FORCEINLINE u32 GetNextIndex(EntityBundle<T>& InBundle)
 {
-	for(int i = 0; i < MaskCount; i++)
+	for(u32 i = 0; i < MaskCount; i++)
 	{
 		u32& Mask = InBundle.FreeListMask[i];
-		if (Mask != ~0)
+		if (Mask != u32(~0))
 		{
 			u32 index = getIndexOfFirstZeroBit(Mask);
-			Mask |= u64(1) << index;
+			pd->system->logToConsole("getIndexOfFirstZeroBit %d", index);
+			pd->system->logToConsole("Mask Index is  %d", i);
+
+			Mask |= u32(1) << index;
+			pd->system->logToConsole("MASK IS %d", Mask);
+
 			++InBundle.MaxIndex;
+			pd->system->logToConsole("MAXINDEX IS %d", InBundle.MaxIndex);
+
 			return index * (i + 1);
 		}
 	}

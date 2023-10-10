@@ -32,7 +32,8 @@ public:
 			m_MaxCount = m_MaxCount == 0 ? 1 : (m_MaxCount << 1);
 			void* NewScratchMemory = malloc(m_MaxCount * sizeof(T));
 			memcpy(NewScratchMemory, ScratchMemory, m_Count * sizeof(T));
-			ScratchMemory = std::move(NewScratchMemory);
+			free(ScratchMemory);
+			ScratchMemory = NewScratchMemory;
 		}
 
 		static_cast<T*>(ScratchMemory)[m_Count++] = In;

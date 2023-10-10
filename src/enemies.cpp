@@ -1,5 +1,3 @@
-#pragma once
-
 #include "enemies.h"
 #include "raycaster.h"
 #include "locator.h"
